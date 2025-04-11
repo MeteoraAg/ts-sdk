@@ -660,9 +660,6 @@
     },
     {
       "name": "create_config",
-      "docs": [
-        "PARTNER FUNCTIONS ////"
-      ],
       "discriminator": [
         201,
         207,
@@ -739,6 +736,124 @@
           "type": {
             "defined": {
               "name": "ConfigParameters"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_partner_metadata",
+      "docs": [
+        "PARTNER FUNCTIONS ////"
+      ],
+      "discriminator": [
+        192,
+        168,
+        234,
+        191,
+        188,
+        226,
+        227,
+        255
+      ],
+      "accounts": [
+        {
+          "name": "partner_metadata",
+          "docs": [
+            "Partner metadata"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  110,
+                  101,
+                  114,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "fee_claimer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Payer of the partner metadata."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fee_claimer",
+          "docs": [
+            "Fee claimer for partner"
+          ],
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program."
+          ],
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "metadata",
+          "type": {
+            "defined": {
+              "name": "CreatePartnerMetadataParameters"
             }
           }
         }
@@ -3307,6 +3422,19 @@
       ]
     },
     {
+      "name": "PartnerMetadata",
+      "discriminator": [
+        68,
+        68,
+        130,
+        19,
+        16,
+        209,
+        98,
+        156
+      ]
+    },
+    {
       "name": "PoolConfig",
       "discriminator": [
         26,
@@ -3449,6 +3577,19 @@
         66,
         134,
         37
+      ]
+    },
+    {
+      "name": "EvtPartnerMetadata",
+      "discriminator": [
+        200,
+        127,
+        6,
+        55,
+        13,
+        32,
+        8,
+        150
       ]
     },
     {
@@ -3885,6 +4026,35 @@
       }
     },
     {
+      "name": "CreatePartnerMetadataParameters",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "padding",
+            "type": {
+              "array": [
+                "u8",
+                96
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "website",
+            "type": "string"
+          },
+          {
+            "name": "logo",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
       "name": "DynamicFeeConfig",
       "serialization": "bytemuck",
       "repr": {
@@ -4229,6 +4399,25 @@
           {
             "name": "activation_point",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EvtPartnerMetadata",
+      "docs": [
+        "Create partner metadata"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "partner_metadata",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_claimer",
+            "type": "pubkey"
           }
         ]
       }
@@ -4579,6 +4768,57 @@
                 125
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PartnerMetadata",
+      "docs": [
+        "Metadata for a partner."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fee_claimer",
+            "docs": [
+              "fee claimer"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "padding",
+            "docs": [
+              "padding for future use"
+            ],
+            "type": {
+              "array": [
+                "u128",
+                6
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Name of partner."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "website",
+            "docs": [
+              "Website of partner."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "logo",
+            "docs": [
+              "Logo of partner"
+            ],
+            "type": "string"
           }
         ]
       }

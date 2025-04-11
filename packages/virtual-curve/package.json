@@ -1,5 +1,5 @@
 {
-  "name": "@mcsam/virtual-curve",
+  "name": "@meteora-ag/virtual-curve-sdk",
   "version": "0.0.0",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
@@ -19,7 +19,8 @@
   "devDependencies": {
     "@meteora-ag/ts-sdk-config": "*",
     "@types/bun": "latest",
-    "eslint": "^9.24.0"
+    "eslint": "^9.24.0",
+    "tsx": "^4.19.3"
   },
   "peerDependencies": {
     "typescript": "^5"

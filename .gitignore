@@ -4,6 +4,8 @@
 node_modules
 .pnp
 .pnp.js
+package-lock.json
+bun.lockb
 
 # Local env files
 .env
@@ -37,4 +39,5 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-
+# Scripts
+scripts/
