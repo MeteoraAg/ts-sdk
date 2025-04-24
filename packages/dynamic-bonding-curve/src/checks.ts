@@ -10,13 +10,14 @@ import {
     type CreateConfigParam,
     type PoolConfig,
 } from './types'
-import { PublicKey } from '@solana/web3.js'
+import { Connection, PublicKey } from '@solana/web3.js'
 import {
     getBaseTokenForSwap,
     getMigrationBaseToken,
     getMigrationThresholdPrice,
     getSwapAmountWithBuffer,
 } from './common'
+import { isNativeSol } from './utils'
 
 /**
  * Check if the locked vesting is the default
@@ -442,4 +443,59 @@ export function validateBaseTokenType(
     poolConfig: PoolConfig
 ): boolean {
     return baseTokenType === poolConfig.tokenType
+}
+
+/**
+ * Validate that the user has sufficient balance for the swap
+ * @param balance - The current balance in lamports
+ * @param amountIn - The input amount for the swap
+ * @param isSOLInput - Whether the input token is SOL
+ * @returns true if the balance is sufficient, throws error if insufficient
+ */
+/**
+ * Validate that the user has sufficient balance for the swap
+ * @param connection - The Solana connection
+ * @param owner - The owner's public key
+ * @param inputMint - The mint of the input token
+ * @param amountIn - The input amount for the swap
+ * @param inputTokenAccount - The token account to check balance for
+ * @returns true if the balance is sufficient, throws error if insufficient
+ */
+export async function validateBalance(
+    connection: Connection,
+    owner: PublicKey,
+    inputMint: PublicKey,
+    amountIn: BN,
+    inputTokenAccount: PublicKey
+): Promise<boolean> {
+    const isSOLInput = isNativeSol(inputMint)
+
+    if (isSOLInput) {
+        const balance = await connection.getBalance(owner)
+        const requiredBalance = BigInt(amountIn.toString()) + BigInt(10000000) // Add 0.01 SOL for fees and rent
+
+        if (balance < Number(requiredBalance)) {
+            throw new Error(
+                `Insufficient SOL balance. Required: ${requiredBalance.toString()} lamports, Found: ${balance} lamports`
+            )
+        }
+    } else {
+        try {
+            const tokenBalance =
+                await connection.getTokenAccountBalance(inputTokenAccount)
+            const balance = new BN(tokenBalance.value.amount)
+
+            if (balance.lt(amountIn)) {
+                throw new Error(
+                    `Insufficient token balance. Required: ${amountIn.toString()}, Found: ${balance.toString()}`
+                )
+            }
+        } catch (error) {
+            throw new Error(
+                `Failed to fetch token balance or token account doesn't exist`
+            )
+        }
+    }
+
+    return true
 }
