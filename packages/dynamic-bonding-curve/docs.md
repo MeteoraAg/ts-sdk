@@ -39,6 +39,7 @@
     - [getDammV1MigrationMetadata](#getDammV1MigrationMetadata)
     - [getLockedLpTokenAmount](#getLockedLpTokenAmount)
     - [getCurveProgress](#getCurveProgress)
+    - [getPoolAddress](#getPoolAddress)
 
 ---
 

@@ -19,6 +19,7 @@ import { PoolService } from './services/pool'
 import { MigrationService } from './services/migration'
 import { PartnerService } from './services/partner'
 import { COMMITMENT } from './constants'
+import { derivePool } from './derive'
 
 export class DynamicBondingCurveProgramClient {
     private program: Program<DynamicBondingCurveIDL>
@@ -34,6 +35,21 @@ export class DynamicBondingCurveProgramClient {
      */
     getProgram(): Program<DynamicBondingCurveIDL> {
         return this.program
+    }
+
+    /**
+     * Get the pool address
+     * @param quoteMint - The quote mint
+     * @param baseMint - The base mint
+     * @param config - The config
+     * @returns The pool address
+     */
+    async getPoolAddress(
+        quoteMint: PublicKey,
+        baseMint: PublicKey,
+        config: PublicKey
+    ): Promise<PublicKey> {
+        return derivePool(quoteMint, baseMint, config, this.program.programId)
     }
 
     /**

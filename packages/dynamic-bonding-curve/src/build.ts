@@ -109,7 +109,7 @@ export function buildConstantProductCurve(
             dynamicFee: null,
         },
         activationType: 0,
-        collectFeeMode: 1,
+        collectFeeMode: 0,
         migrationOption,
         tokenType: 0, // spl_token
         tokenDecimal: tokenBaseDecimal,
