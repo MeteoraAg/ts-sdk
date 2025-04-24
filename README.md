@@ -20,4 +20,4 @@ yarn add @meteora-ag/dynamic-bonding-curve-sdk
 
 ### Dynamic Bonding Curve SDK
 
-Refer to the [docs](./packages/dynamic-bonding-curve/README.md) for more information.
+Refer to the [README](./packages/dynamic-bonding-curve/README.md) for more information.
