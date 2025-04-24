@@ -428,7 +428,8 @@ interface CreatePoolParam {
     name: string
     symbol: string
     uri: string
-    creator: PublicKey
+    payer: PublicKey
+    poolCreator: PublicKey
 }
 ```
 
@@ -448,7 +449,8 @@ const transaction = await client.pools.createPool({
     name: 'Jupiter',
     symbol: 'JUP',
     uri: 'https://jup.ag',
-    creator: wallet.publicKey,
+    payer: wallet.publicKey,
+    poolCreator: poolCreator.publicKey,
 })
 ```
 
