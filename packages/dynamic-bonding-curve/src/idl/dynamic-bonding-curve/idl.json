@@ -1085,7 +1085,8 @@
           "address": "FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM"
         },
         {
-          "name": "creator"
+          "name": "creator",
+          "signer": true
         },
         {
           "name": "base_mint",
@@ -1273,7 +1274,8 @@
           "address": "FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM"
         },
         {
-          "name": "creator"
+          "name": "creator",
+          "signer": true
         },
         {
           "name": "base_mint",
@@ -3400,6 +3402,11 @@
       "code": 6033,
       "name": "SwapAmountIsOverAThreshold",
       "msg": "Swap amount is over a threshold"
+    },
+    {
+      "code": 6034,
+      "name": "InvalidFeeScheduler",
+      "msg": "Invalid fee scheduler"
     }
   ],
   "types": [

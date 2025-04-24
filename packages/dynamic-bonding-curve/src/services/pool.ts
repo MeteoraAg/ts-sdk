@@ -63,11 +63,13 @@ export class PoolService {
             name,
             symbol,
             uri,
-            creator,
+            payer,
+            poolCreator,
         } = createPoolParam
 
         const poolConfigState = await this.programClient.getPoolConfig(config)
 
+        // error checks
         validateBaseTokenType(baseTokenType, poolConfigState)
 
         const eventAuthority = deriveEventAuthority()
@@ -89,7 +91,8 @@ export class PoolService {
             const accounts: InitializeVirtualPoolWithSplTokenAccounts = {
                 pool,
                 config,
-                creator,
+                payer,
+                creator: poolCreator,
                 mintMetadata: baseMetadata,
                 program: program.programId,
                 tokenQuoteProgram:
@@ -97,7 +100,6 @@ export class PoolService {
                         ? TOKEN_PROGRAM_ID
                         : TOKEN_2022_PROGRAM_ID,
                 baseMint,
-                payer: creator,
                 poolAuthority,
                 baseVault,
                 quoteVault,
@@ -121,10 +123,10 @@ export class PoolService {
             const accounts: InitializeVirtualPoolWithToken2022Accounts = {
                 pool,
                 config,
-                creator,
+                payer,
+                creator: poolCreator,
                 program: program.programId,
                 baseMint,
-                payer: creator,
                 poolAuthority,
                 baseVault,
                 quoteVault,
@@ -192,8 +194,11 @@ export class PoolService {
      */
     async swap(pool: PublicKey, swapParam: SwapParam): Promise<Transaction> {
         const program = this.programClient.getProgram()
+        const eventAuthority = deriveEventAuthority()
+        const poolAuthority = derivePoolAuthority(program.programId)
 
         const virtualPoolState = await this.programClient.getPool(pool)
+
         if (!virtualPoolState) {
             throw new Error(`Pool not found: ${pool.toString()}`)
         }
@@ -212,8 +217,11 @@ export class PoolService {
                 poolConfigState
             )
 
-        const eventAuthority = deriveEventAuthority()
-        const poolAuthority = derivePoolAuthority(program.programId)
+        const isSOLInput = isNativeSol(inputMint)
+        const isSOLOutput = isNativeSol(outputMint)
+
+        const ixs = []
+        const cleanupIxs = []
 
         const inputTokenAccount = findAssociatedTokenAddress(
             owner,
@@ -227,11 +235,6 @@ export class PoolService {
             outputTokenProgram
         )
 
-        const isSOLInput = isNativeSol(inputMint)
-        const isSOLOutput = isNativeSol(outputMint)
-
-        const ixs = []
-        const cleanupIxs = []
         if (isSOLInput) {
             ixs.push(
                 createAssociatedTokenAccountIdempotentInstruction(

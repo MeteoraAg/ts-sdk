@@ -908,6 +908,7 @@ export type DynamicBondingCurve = {
                 },
                 {
                     name: 'creator'
+                    signer: true
                 },
                 {
                     name: 'baseMint'
@@ -1073,6 +1074,7 @@ export type DynamicBondingCurve = {
                 },
                 {
                     name: 'creator'
+                    signer: true
                 },
                 {
                     name: 'baseMint'
@@ -2727,6 +2729,11 @@ export type DynamicBondingCurve = {
             code: 6033
             name: 'swapAmountIsOverAThreshold'
             msg: 'Swap amount is over a threshold'
+        },
+        {
+            code: 6034
+            name: 'invalidFeeScheduler'
+            msg: 'Invalid fee scheduler'
         },
     ]
     types: [

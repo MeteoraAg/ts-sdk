@@ -304,11 +304,12 @@ export type CreatePoolParam = {
     name: string
     symbol: string
     uri: string
+    payer: PublicKey
+    poolCreator: PublicKey
     config: PublicKey
-    creator: PublicKey
     baseMint: PublicKey
-    quoteMint: PublicKey
     baseTokenType: TokenType
+    quoteMint: PublicKey
     quoteTokenType: TokenType
 }
 
