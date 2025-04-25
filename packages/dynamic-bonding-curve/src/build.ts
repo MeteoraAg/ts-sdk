@@ -2,7 +2,8 @@ import Decimal from 'decimal.js'
 import BN from 'bn.js'
 import {
     type ConfigParameters,
-    type BuildCustomConstantProductCurveParam,
+    type BuildCurveParam,
+    BuildCurveByMarketCapParam,
 } from './types'
 import { MAX_SQRT_PRICE } from './constants'
 import {
@@ -21,15 +22,11 @@ import { getInitialLiquidityFromDeltaBase } from './math/curve'
  * @param buildCustomConstantProductCurveParam - The parameters for the custom constant product curve
  * @returns The build custom constant product curve
  */
-export function buildCustomConstantProductCurve(
-    buildCustomConstantProductCurveParam: BuildCustomConstantProductCurveParam
-): ConfigParameters {
+export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     const {
         totalTokenSupply,
         percentageSupplyOnMigration,
         migrationQuoteThreshold,
-        initialMarketCap,
-        migrationMarketCap,
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
@@ -44,56 +41,17 @@ export function buildCustomConstantProductCurve(
         creatorLpPercentage,
         partnerLockedLpPercentage,
         creatorLockedLpPercentage,
-    } = buildCustomConstantProductCurveParam
-
-    // Validate parameter sets
-    const hasPercentageAndThreshold =
-        percentageSupplyOnMigration !== undefined &&
-        migrationQuoteThreshold !== undefined
-    const hasMarketCaps =
-        initialMarketCap !== undefined && migrationMarketCap !== undefined
-
-    if (hasPercentageAndThreshold && hasMarketCaps) {
-        throw new Error(
-            'Cannot specify both (migrationQuoteThreshold && percentageSupplyOnMigration) and (initialMarketCap && migrationMarketCap)'
-        )
-    }
-
-    if (!hasPercentageAndThreshold && !hasMarketCaps) {
-        throw new Error(
-            'Must specify either (migrationQuoteThreshold && percentageSupplyOnMigration) or (initialMarketCap && migrationMarketCap)'
-        )
-    }
-
-    let finalPercentageSupplyOnMigration: number
-    let finalMigrationQuoteThreshold: number
-
-    if (hasMarketCaps) {
-        finalPercentageSupplyOnMigration = getPercentageSupplyOnMigration(
-            new BN(initialMarketCap!),
-            new BN(migrationMarketCap!)
-        )
-        finalMigrationQuoteThreshold = getMigrationQuoteThreshold(
-            new BN(migrationMarketCap!),
-            finalPercentageSupplyOnMigration
-        )
-    } else {
-        finalPercentageSupplyOnMigration = percentageSupplyOnMigration!
-        finalMigrationQuoteThreshold = migrationQuoteThreshold!
-    }
-
-    console.log(finalPercentageSupplyOnMigration)
-    console.log(finalMigrationQuoteThreshold)
+    } = buildCurveParam
 
     const {
         numberOfPeriod,
         reductionFactor,
         periodFrequency,
         feeSchedulerMode,
-    } = buildCustomConstantProductCurveParam.feeSchedulerParam
+    } = buildCurveParam.feeSchedulerParam
 
     const migrationBaseSupply = new BN(totalTokenSupply)
-        .mul(new BN(finalPercentageSupplyOnMigration))
+        .mul(new BN(percentageSupplyOnMigration))
         .div(new BN(100))
 
     const totalSupply = new BN(totalTokenSupply).mul(
@@ -101,12 +59,12 @@ export function buildCustomConstantProductCurve(
     )
 
     const migrationQuoteThresholdWithDecimals = new BN(
-        finalMigrationQuoteThreshold * 10 ** tokenQuoteDecimal
+        migrationQuoteThreshold * 10 ** tokenQuoteDecimal
     )
 
-    const migrationPrice = new Decimal(
-        finalMigrationQuoteThreshold.toString()
-    ).div(new Decimal(migrationBaseSupply.toString()))
+    const migrationPrice = new Decimal(migrationQuoteThreshold.toString()).div(
+        new Decimal(migrationBaseSupply.toString())
+    )
 
     const migrateSqrtPrice = getSqrtPriceFromPrice(
         migrationPrice.toString(),
@@ -198,4 +156,31 @@ export function buildCustomConstantProductCurve(
         curve,
     }
     return instructionParams
+}
+
+/**
+ * Build a custom constant product curve by market cap
+ * @param buildCurveByMarketCapParam - The parameters for the custom constant product curve by market cap
+ * @returns The build custom constant product curve by market cap
+ */
+export function buildCurveByMarketCap(
+    buildCurveByMarketCapParam: BuildCurveByMarketCapParam
+): ConfigParameters {
+    const { initialMarketCap, migrationMarketCap } = buildCurveByMarketCapParam
+
+    const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
+        new BN(initialMarketCap),
+        new BN(migrationMarketCap)
+    )
+
+    const migrationQuoteThreshold = getMigrationQuoteThreshold(
+        new BN(migrationMarketCap),
+        percentageSupplyOnMigration
+    )
+
+    return buildCurve({
+        ...buildCurveByMarketCapParam,
+        percentageSupplyOnMigration,
+        migrationQuoteThreshold,
+    })
 }

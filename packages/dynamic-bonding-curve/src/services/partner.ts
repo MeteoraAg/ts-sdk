@@ -10,11 +10,12 @@ import {
     type ClaimTradingFeeParam,
     type ConfigParameters,
     type CreateConfigParam,
-    type BuildAndCreateCustomConstantProductConfigParam,
     type CreatePartnerMetadataParam,
     type CreatePartnerMetadataParameters,
     type PartnerWithdrawSurplusParam,
     type WithdrawLeftoverParam,
+    BuildCurveAndCreateConfigByMarketCapParam,
+    BuildCurveAndCreateConfigParam,
 } from '../types'
 import {
     deriveEventAuthority,
@@ -29,7 +30,7 @@ import {
 } from '@solana/spl-token'
 import { findAssociatedTokenAddress, unwrapSOLInstruction } from '../utils'
 import { validateConfigParameters } from '../checks'
-import { buildCustomConstantProductCurve } from '../build'
+import { buildCurve, buildCurveByMarketCap } from '../build'
 
 export class PartnerService {
     private connection: Connection
@@ -79,34 +80,33 @@ export class PartnerService {
     }
 
     /**
-     * Build and create a new custom constant product config
-     * @param buildAndCreateCustomConstantProductConfigParam - The parameters for the custom constant product config
+     * Build curve and create a new custom constant product config
+     * @param buildCurveAndCreateConfigParam - The parameters for the custom constant product config
      * @returns A new custom constant product config
      */
-    async buildAndCreateCustomConstantProductConfig(
-        buildAndCreateCustomConstantProductConfigParam: BuildAndCreateCustomConstantProductConfigParam
+    async buildCurveAndCreateConfig(
+        buildCurveAndCreateConfigParam: BuildCurveAndCreateConfigParam
     ): Promise<Transaction> {
         const program = this.programClient.getProgram()
 
         const {
-            customConstantProductCurveParam,
+            buildCurveParam,
             feeClaimer,
             leftoverReceiver,
             payer,
             quoteMint,
             config,
-        } = buildAndCreateCustomConstantProductConfigParam
+        } = buildCurveAndCreateConfigParam
 
         const eventAuthority = deriveEventAuthority()
 
-        const customConstantProductCurveConfig: ConfigParameters =
-            buildCustomConstantProductCurve({
-                ...customConstantProductCurveParam,
-            })
+        const curveConfig: ConfigParameters = buildCurve({
+            ...buildCurveParam,
+        })
 
         // error checks
         validateConfigParameters({
-            ...customConstantProductCurveConfig,
+            ...curveConfig,
             leftoverReceiver,
         })
 
@@ -121,7 +121,54 @@ export class PartnerService {
         }
 
         return program.methods
-            .createConfig(customConstantProductCurveConfig)
+            .createConfig(curveConfig)
+            .accounts(accounts)
+            .transaction()
+    }
+
+    /**
+     * Build curve by market cap and create a new custom constant product config
+     * @param buildCurveAndCreateConfigByMarketCapParam - The parameters for the custom constant product config
+     * @returns A new custom constant product config
+     */
+    async buildCurveAndCreateConfigByMarketCap(
+        buildCurveAndCreateConfigByMarketCapParam: BuildCurveAndCreateConfigByMarketCapParam
+    ): Promise<Transaction> {
+        const program = this.programClient.getProgram()
+
+        const {
+            buildCurveByMarketCapParam,
+            feeClaimer,
+            leftoverReceiver,
+            payer,
+            quoteMint,
+            config,
+        } = buildCurveAndCreateConfigByMarketCapParam
+
+        const eventAuthority = deriveEventAuthority()
+
+        const curveConfig: ConfigParameters = buildCurveByMarketCap({
+            ...buildCurveByMarketCapParam,
+        })
+
+        // error checks
+        validateConfigParameters({
+            ...curveConfig,
+            leftoverReceiver,
+        })
+
+        const accounts = {
+            config,
+            feeClaimer,
+            leftoverReceiver,
+            quoteMint,
+            payer,
+            eventAuthority,
+            program: program.programId,
+        }
+
+        return program.methods
+            .createConfig(curveConfig)
             .accounts(accounts)
             .transaction()
     }
