@@ -11,10 +11,6 @@ import {
     TokenType,
 } from '../src'
 import { convertBNToDecimal } from '../src/utils'
-import {
-    getMigrationQuoteThreshold,
-    getPercentageSupplyOnMigration,
-} from '../src/common'
 
 describe('buildCurveByMarketCap', () => {
     const baseParams = {
