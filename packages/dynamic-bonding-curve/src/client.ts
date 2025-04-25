@@ -5,6 +5,7 @@ import {
     type PartnerMetadata,
     type VirtualPoolMetadata,
     type LockEscrow,
+    TokenType,
 } from './types'
 import { Connection, PublicKey } from '@solana/web3.js'
 import {
@@ -20,6 +21,11 @@ import { MigrationService } from './services/migration'
 import { PartnerService } from './services/partner'
 import { COMMITMENT } from './constants'
 import { derivePool } from './derive'
+import {
+    getMint,
+    TOKEN_2022_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+} from '@solana/spl-token'
 
 export class DynamicBondingCurveProgramClient {
     private program: Program<DynamicBondingCurveIDL>
@@ -225,6 +231,34 @@ export class DynamicBondingCurveProgramClient {
         // Ensure progress is between 0 and 1
         return Math.min(Math.max(progress, 0), 1)
     }
+
+    /**
+     * Get token decimals for a particular mint
+     * @param mintAddress - The mint address to get decimals for
+     * @param tokenType - Optional token type (SPL or Token2022)
+     * @returns The number of decimals for the token
+     */
+    async getTokenDecimals(
+        mintAddress: PublicKey | string,
+        tokenType?: TokenType
+    ): Promise<number> {
+        const mint =
+            mintAddress instanceof PublicKey
+                ? mintAddress
+                : new PublicKey(mintAddress)
+
+        const mintInfo = await getMint(
+            this.program.provider.connection,
+            mint,
+            COMMITMENT,
+            tokenType === TokenType.Token2022
+                ? TOKEN_2022_PROGRAM_ID
+                : TOKEN_PROGRAM_ID
+        )
+        return mintInfo.decimals
+    }
+
+    
 }
 
 /**

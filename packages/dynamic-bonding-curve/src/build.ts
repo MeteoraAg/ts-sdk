@@ -2,8 +2,8 @@ import Decimal from 'decimal.js'
 import BN from 'bn.js'
 import {
     type ConfigParameters,
-    type BuildConstantProductCurveParam,
     type BuildCustomConstantProductCurveParam,
+    BuildCustomConstantProductCurveWithMarketCapParam,
 } from './types'
 import { MAX_SQRT_PRICE } from './constants'
 import {
@@ -12,16 +12,17 @@ import {
     getTotalVestingAmount,
     getFirstCurve,
     getTotalSupplyFromCurve,
+    getPercentageSupplyOnMigration,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from './math/curve'
 
 /**
- * Build a constant product curve
- * @param buildConstantProductCurveParam - The parameters for the constant product curve
- * @returns The build constant product curve
+ * Build a custom constant product curve
+ * @param buildCustomConstantProductCurveParam - The parameters for the custom constant product curve
+ * @returns The build custom constant product curve
  */
-export function buildConstantProductCurve(
-    buildConstantProductCurveParam: BuildConstantProductCurveParam
+export function buildCustomConstantProductCurve(
+    buildCustomConstantProductCurveParam: BuildCustomConstantProductCurveParam
 ): ConfigParameters {
     const {
         totalTokenSupply,
@@ -31,7 +32,24 @@ export function buildConstantProductCurve(
         tokenBaseDecimal,
         tokenQuoteDecimal,
         lockedVesting,
-    } = buildConstantProductCurveParam
+        baseFeeBps,
+        dynamicFeeEnabled,
+        activationType,
+        collectFeeMode,
+        migrationFeeOption,
+        tokenType,
+        partnerLpPercentage,
+        creatorLpPercentage,
+        partnerLockedLpPercentage,
+        creatorLockedLpPercentage,
+    } = buildCustomConstantProductCurveParam
+
+    const {
+        numberOfPeriod,
+        reductionFactor,
+        periodFrequency,
+        feeSchedulerMode,
+    } = buildCustomConstantProductCurveParam.feeSchedulerParam
 
     const migrationBaseSupply = new BN(totalTokenSupply)
         .mul(new BN(percentageSupplyOnMigration))
@@ -100,27 +118,37 @@ export function buildConstantProductCurve(
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                cliffFeeNumerator: new BN(2_500_000),
-                numberOfPeriod: 0,
-                reductionFactor: new BN(0),
-                periodFrequency: new BN(0),
-                feeSchedulerMode: 0,
+                cliffFeeNumerator: new BN((baseFeeBps * 100000).toString()),
+                numberOfPeriod: numberOfPeriod,
+                reductionFactor: new BN(reductionFactor),
+                periodFrequency: new BN(periodFrequency),
+                feeSchedulerMode: feeSchedulerMode,
             },
-            dynamicFee: null,
+            dynamicFee: dynamicFeeEnabled
+                ? {
+                      binStep: 1,
+                      binStepU128: new BN('1844674407370955'),
+                      filterPeriod: 10,
+                      decayPeriod: 120,
+                      reductionFactor: 5000,
+                      variableFeeControl: 2000000,
+                      maxVolatilityAccumulator: 100000,
+                  }
+                : null,
         },
-        activationType: 0,
-        collectFeeMode: 0,
-        migrationOption,
-        tokenType: 0, // spl_token
+        activationType: activationType,
+        collectFeeMode: collectFeeMode,
+        migrationOption: migrationOption,
+        tokenType: tokenType,
         tokenDecimal: tokenBaseDecimal,
         migrationQuoteThreshold: migrationQuoteThresholdWithDecimals,
-        partnerLpPercentage: 0,
-        creatorLpPercentage: 0,
-        partnerLockedLpPercentage: 100,
-        creatorLockedLpPercentage: 0,
+        partnerLpPercentage: partnerLpPercentage,
+        creatorLpPercentage: creatorLpPercentage,
+        partnerLockedLpPercentage: partnerLockedLpPercentage,
+        creatorLockedLpPercentage: creatorLockedLpPercentage,
         sqrtStartPrice,
         lockedVesting,
-        migrationFeeOption: 0,
+        migrationFeeOption: migrationFeeOption,
         tokenSupply: {
             preMigrationTokenSupply: totalSupply,
             postMigrationTokenSupply: totalSupply,
@@ -136,27 +164,18 @@ export function buildConstantProductCurve(
  * @param buildCustomConstantProductCurveParam - The parameters for the custom constant product curve
  * @returns The build custom constant product curve
  */
-export function buildCustomConstantProductCurve(
-    buildCustomConstantProductCurveParam: BuildCustomConstantProductCurveParam
+export function buildCustomConstantProductCurveWithMarketCap(
+    buildCustomConstantProductCurveWithMarketCapParam: BuildCustomConstantProductCurveWithMarketCapParam
 ): ConfigParameters {
     const {
         totalTokenSupply,
-        percentageSupplyOnMigration,
+        initialMarketCap,
+        migrationMarketCap,
         migrationQuoteThreshold,
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
         lockedVesting,
-    } = buildCustomConstantProductCurveParam.constantProductCurveParam
-
-    const {
-        numberOfPeriod,
-        reductionFactor,
-        periodFrequency,
-        feeSchedulerMode,
-    } = buildCustomConstantProductCurveParam.feeSchedulerParam
-
-    const {
         baseFeeBps,
         dynamicFeeEnabled,
         activationType,
@@ -167,7 +186,21 @@ export function buildCustomConstantProductCurve(
         creatorLpPercentage,
         partnerLockedLpPercentage,
         creatorLockedLpPercentage,
-    } = buildCustomConstantProductCurveParam
+    } = buildCustomConstantProductCurveWithMarketCapParam
+
+    const {
+        numberOfPeriod,
+        reductionFactor,
+        periodFrequency,
+        feeSchedulerMode,
+    } = buildCustomConstantProductCurveWithMarketCapParam.feeSchedulerParam
+
+    const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
+        new BN(initialMarketCap),
+        new BN(migrationMarketCap)
+    )
+
+    console.log('percentageSupplyOnMigration', percentageSupplyOnMigration)
 
     const migrationBaseSupply = new BN(totalTokenSupply)
         .mul(new BN(percentageSupplyOnMigration))

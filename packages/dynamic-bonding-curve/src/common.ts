@@ -471,3 +471,18 @@ export const getSwapAmountWithBuffer = (
     )
     return BN.min(swapAmountBuffer, maxBaseAmountOnCurve)
 }
+
+/**
+ * Calculate the percentage of supply that should be allocated to initial liquidity
+ * @param initialMarketCap - The initial market cap
+ * @param migrationMarketCap - The migration market cap
+ * @returns The percentage of supply for initial liquidity (as a number between 0-100)
+ */
+export const getPercentageSupplyOnMigration = (
+    initialMarketCap: BN,
+    migrationMarketCap: BN
+): number => {
+    const numerator = initialMarketCap.mul(new BN(100))
+    const denominator = initialMarketCap.add(migrationMarketCap)
+    return numerator.div(denominator).toNumber()
+}
