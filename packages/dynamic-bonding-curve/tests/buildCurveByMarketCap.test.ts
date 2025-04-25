@@ -49,8 +49,8 @@ describe('buildCurveByMarketCap', () => {
         )
         const config = buildCurve({
             ...baseParams,
-            percentageSupplyOnMigration: 3,
-            migrationQuoteThreshold: 98,
+            percentageSupplyOnMigration: 2.983257229832572,
+            migrationQuoteThreshold: 95.07640791476408,
         })
 
         console.log('config:', convertBNToDecimal(config))
@@ -60,14 +60,14 @@ describe('buildCurveByMarketCap', () => {
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build curve with percentage and threshold parameters', () => {
+    test('build curve with market cap parameters', () => {
         console.log(
             '\n testing build curve with percentage and threshold parameters...'
         )
         const config = buildCurveByMarketCap({
             ...baseParams,
-            initialMarketCap: 15000,
-            migrationMarketCap: 490000,
+            initialMarketCapInSol: 98.58,
+            migrationMarketCapInSol: 3187.61,
         })
 
         console.log('config:', convertBNToDecimal(config))
@@ -75,5 +75,53 @@ describe('buildCurveByMarketCap', () => {
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
         expect(config.curve.length).toBeGreaterThan(0)
+    })
+
+    test('build curve with locked vesting', () => {
+        console.log('\n testing build curve with locked vesting...')
+        const lockedVestingParams = {
+            ...baseParams,
+            initialMarketCapInSol: 98.58,
+            migrationMarketCapInSol: 3187.61,
+            lockedVesting: {
+                amountPerPeriod: new BN(1000000),
+                cliffDurationFromMigrationTime: new BN(0),
+                frequency: new BN(30 * 24 * 60 * 60),
+                numberOfPeriod: new BN(12),
+                cliffUnlockAmount: new BN(5000000),
+            },
+        }
+
+        const config = buildCurveByMarketCap(lockedVestingParams)
+
+        console.log('config with locked vesting:', convertBNToDecimal(config))
+        expect(config).toBeDefined()
+        expect(config.migrationQuoteThreshold).toBeDefined()
+        expect(config.curve).toBeDefined()
+        expect(config.curve.length).toBeGreaterThan(0)
+
+        const totalVestingAmount =
+            lockedVestingParams.lockedVesting.cliffUnlockAmount.add(
+                lockedVestingParams.lockedVesting.amountPerPeriod.mul(
+                    lockedVestingParams.lockedVesting.numberOfPeriod
+                )
+            )
+        const vestingPercentage = totalVestingAmount
+            .mul(new BN(100))
+            .div(new BN(lockedVestingParams.totalTokenSupply))
+            .toNumber()
+
+        expect(config.tokenSupply).not.toBeNull()
+        if (config.tokenSupply) {
+            expect(config.tokenSupply.preMigrationTokenSupply).toBeDefined()
+            expect(config.tokenSupply.postMigrationTokenSupply).toBeDefined()
+
+            const migrationPercentage = config.migrationQuoteThreshold
+                .mul(new BN(100))
+                .div(config.tokenSupply.preMigrationTokenSupply)
+                .toNumber()
+
+            expect(migrationPercentage).toBeLessThan(100 - vestingPercentage)
+        }
     })
 })

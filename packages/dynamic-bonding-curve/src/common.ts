@@ -476,15 +476,30 @@ export const getSwapAmountWithBuffer = (
  * Calculate the percentage of supply that should be allocated to initial liquidity
  * @param initialMarketCap - The initial market cap
  * @param migrationMarketCap - The migration market cap
- * @returns The percentage of supply for initial liquidity (as a number between 0-100)
+ * @param lockedVesting - The locked vesting
+ * @param totalTokenSupply - The total token supply
+ * @returns The percentage of supply for initial liquidity
  */
 export const getPercentageSupplyOnMigration = (
     initialMarketCap: BN,
-    migrationMarketCap: BN
+    migrationMarketCap: BN,
+    lockedVesting: LockedVestingParameters,
+    totalTokenSupply: BN
 ): number => {
     const initialMarketCapDecimal = new Decimal(initialMarketCap.toString())
     const migrationMarketCapDecimal = new Decimal(migrationMarketCap.toString())
-    const numerator = initialMarketCapDecimal.mul(100)
+
+    // calculate percentage of locked vesting (z)
+    const totalVestingAmount = getTotalVestingAmount(lockedVesting)
+    const vestingPercentage = totalVestingAmount
+        .mul(new BN(100))
+        .div(totalTokenSupply)
+        .toNumber()
+
+    // x = (initialMC * (100-z)) / (initialMC + migrationMC)
+    const numerator = initialMarketCapDecimal.mul(
+        new Decimal(100 - vestingPercentage)
+    )
     const denominator = initialMarketCapDecimal.add(migrationMarketCapDecimal)
     return numerator.div(denominator).toNumber()
 }
@@ -499,8 +514,14 @@ export const getMigrationQuoteThreshold = (
     migrationMarketCap: BN,
     percentageSupplyOnMigration: number
 ): number => {
-    return migrationMarketCap
-        .mul(new BN(percentageSupplyOnMigration))
-        .div(new BN(10000))
+    const migrationMarketCapDecimal = new Decimal(migrationMarketCap.toString())
+    const percentageDecimal = new Decimal(
+        percentageSupplyOnMigration.toString()
+    )
+
+    // migrationMC * x / 100
+    return migrationMarketCapDecimal
+        .mul(percentageDecimal)
+        .div(new Decimal(100))
         .toNumber()
 }
