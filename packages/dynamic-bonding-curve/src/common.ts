@@ -491,10 +491,10 @@ export const getPercentageSupplyOnMigration = (
 
     // calculate percentage of locked vesting (z)
     const totalVestingAmount = getTotalVestingAmount(lockedVesting)
-    const vestingPercentage = totalVestingAmount
-        .mul(new BN(100))
-        .div(totalTokenSupply)
-        .toNumber()
+    const vestingPercentageDecimal = new Decimal(totalVestingAmount.toString())
+        .mul(new Decimal(100))
+        .div(new Decimal(totalTokenSupply.toString()))
+    const vestingPercentage = vestingPercentageDecimal.toNumber()
 
     // x = (initialMC * (100-z)) / (initialMC + migrationMC)
     const numerator = initialMarketCapDecimal.mul(
