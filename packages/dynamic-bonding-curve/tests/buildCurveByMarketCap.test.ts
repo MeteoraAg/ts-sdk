@@ -61,13 +61,11 @@ describe('buildCurveByMarketCap', () => {
     })
 
     test('build curve with market cap parameters', () => {
-        console.log(
-            '\n testing build curve with percentage and threshold parameters...'
-        )
+        console.log('\n testing build curve with market cap parameters...')
         const config = buildCurveByMarketCap({
             ...baseParams,
-            initialMarketCap: 98.58,
-            migrationMarketCap: 3187.61,
+            initialMarketCap: 99.1669972233,
+            migrationMarketCap: 462.779320376,
         })
 
         console.log('config:', convertBNToDecimal(config))
@@ -81,8 +79,8 @@ describe('buildCurveByMarketCap', () => {
         console.log('\n testing build curve with locked vesting...')
         const lockedVestingParams = {
             ...baseParams,
-            initialMarketCap: 98.58,
-            migrationMarketCap: 3187.61,
+            initialMarketCap: 99.1669972233,
+            migrationMarketCap: 462.779320376,
             lockedVesting: {
                 amountPerPeriod: new BN(1000000),
                 cliffDurationFromMigrationTime: new BN(0),
