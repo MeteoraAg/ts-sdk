@@ -5,8 +5,8 @@
 - [Partner Functions](#partner-functions)
 
     - [createConfig](#createConfig)
-    - [buildAndCreateConstantProductConfig](#buildAndCreateConstantProductConfig)
-    - [buildAndCreateCustomConstantProductConfig](#buildAndCreateCustomConstantProductConfig)
+    - [buildCurveAndCreateConfig](#buildCurveAndCreateConfig)
+    - [buildCurveAndCreateConfigByMarketCap](#buildCurveAndCreateConfigByMarketCap)
     - [createPartnerMetadata](#createPartnerMetadata)
     - [claimTradingFee](#claimTradingFee)
     - [partnerWithdrawSurplus](#partnerWithdrawSurplus)
@@ -191,21 +191,21 @@ const transaction = await client.partners.createConfig({
 
 ---
 
-### buildAndCreateConstantProductConfig
+### buildCurveAndCreateConfig
 
-Builds a new constant product config with majority preconfigured parameters. This creates a new configuration key that will dictate the behavior of all pools created with this key.
+Builds a new constant product config with customisable parameters based on percentage of supply on migration. This creates a new configuration key that will dictate the behavior of all pools created with this key.
 
 #### Function
 
 ```typescript
-async buildAndCreateConstantProductConfig(buildAndCreateConstantProductConfigParam: BuildAndCreateConstantProductConfigParam): Promise<Transaction>
+async buildCurveAndCreateConfig(buildCurveAndCreateConfigParam: BuildCurveAndCreateConfigParam): Promise<Transaction>
 ```
 
 #### Parameters
 
 ```typescript
-interface BuildAndCreateConstantProductConfigParam {
-    constantProductCurveParam: {
+interface BuildCurveAndCreateConfigParam {
+    buildCurveParam: {
         totalTokenSupply: number
         percentageSupplyOnMigration: number
         migrationQuoteThreshold: number
@@ -235,11 +235,11 @@ A transaction that can be partially signed and sent to the network.
 #### Example
 
 ```typescript
-const transaction = await client.partners.buildAndCreateConstantProductConfig({
-    constantProductCurveParam: {
+const transaction = await client.partners.buildCurveAndCreateConfig({
+    buildCurveParam: {
         totalTokenSupply: 1000000000,
         percentageSupplyOnMigration: 10,
-        migrationQuoteThreshold: 10000000000,
+        migrationQuoteThreshold: 100,
         migrationOption: 0,
         tokenBaseDecimal: 9,
         tokenQuoteDecimal: 9,
@@ -261,24 +261,24 @@ const transaction = await client.partners.buildAndCreateConstantProductConfig({
 
 ---
 
-### buildAndCreateCustomConstantProductConfig
+### buildCurveAndCreateConfigByMarketCap
 
-Builds a new constant product config with customisable parameters. This creates a new configuration key that will dictate the behavior of all pools created with this key.
+Builds a new constant product config with customisable parameters based on market cap. This creates a new configuration key that will dictate the behavior of all pools created with this key.
 
 #### Function
 
 ```typescript
-async buildAndCreateCustomConstantProductConfig(buildAndCreateCustomConstantProductConfigParam: BuildAndCreateCustomConstantProductConfigParam): Promise<Transaction>
+async buildCurveAndCreateConfigByMarketCap(buildCurveAndCreateConfigByMarketCapParam: BuildCurveAndCreateConfigByMarketCapParam): Promise<Transaction>
 ```
 
 #### Parameters
 
 ```typescript
-interface BuildAndCreateCustomConstantProductConfigParam {
-    constantProductCurveParam: {
+interface BuildCurveAndCreateConfigByMarketCapParam {
+    buildCurveByMarketCapParam: {
         totalTokenSupply: number
-        percentageSupplyOnMigration: number
-        migrationQuoteThreshold: number
+        initialMarketCap: number
+        migrationMarketCap: number
         migrationOption: number
         tokenBaseDecimal: number
         tokenQuoteDecimal: number
@@ -322,11 +322,11 @@ A transaction that can be partially signed and sent to the network.
 
 ```typescript
 const transaction =
-    await client.partners.buildAndCreateCustomConstantProductConfig({
-        constantProductCurveParam: {
+    await client.partners.buildCurveAndCreateConfigByMarketCap({
+        buildCurveByMarketCapParam: {
             totalTokenSupply: 1000000000,
-            percentageSupplyOnMigration: 10,
-            migrationQuoteThreshold: 10000000000,
+            initialMarketCap: 98,
+            migrationMarketCap: 3200,
             migrationOption: 0,
             tokenBaseDecimal: 9,
             tokenQuoteDecimal: 9,

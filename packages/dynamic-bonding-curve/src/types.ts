@@ -240,8 +240,8 @@ export type BuildCurveParam = BuildCurveBaseParam & {
 }
 
 export type BuildCurveByMarketCapParam = BuildCurveBaseParam & {
-    initialMarketCapInSol: number
-    migrationMarketCapInSol: number
+    initialMarketCap: number
+    migrationMarketCap: number
 }
 
 export type BuildCurveAndCreateConfigParam = {

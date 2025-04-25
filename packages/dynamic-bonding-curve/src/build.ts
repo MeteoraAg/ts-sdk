@@ -167,21 +167,21 @@ export function buildCurveByMarketCap(
     buildCurveByMarketCapParam: BuildCurveByMarketCapParam
 ): ConfigParameters {
     const {
-        initialMarketCapInSol,
-        migrationMarketCapInSol,
+        initialMarketCap,
+        migrationMarketCap,
         lockedVesting,
         totalTokenSupply,
     } = buildCurveByMarketCapParam
 
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
-        new BN(initialMarketCapInSol),
-        new BN(migrationMarketCapInSol),
+        new BN(initialMarketCap),
+        new BN(migrationMarketCap),
         lockedVesting,
         new BN(totalTokenSupply)
     )
 
     const migrationQuoteThreshold = getMigrationQuoteThreshold(
-        new BN(migrationMarketCapInSol),
+        new BN(migrationMarketCap),
         percentageSupplyOnMigration
     )
 
