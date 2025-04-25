@@ -482,7 +482,25 @@ export const getPercentageSupplyOnMigration = (
     initialMarketCap: BN,
     migrationMarketCap: BN
 ): number => {
-    const numerator = initialMarketCap.mul(new BN(100))
-    const denominator = initialMarketCap.add(migrationMarketCap)
+    const initialMarketCapDecimal = new Decimal(initialMarketCap.toString())
+    const migrationMarketCapDecimal = new Decimal(migrationMarketCap.toString())
+    const numerator = initialMarketCapDecimal.mul(100)
+    const denominator = initialMarketCapDecimal.add(migrationMarketCapDecimal)
     return numerator.div(denominator).toNumber()
+}
+
+/**
+ * Get the migration quote threshold
+ * @param migrationMarketCap - The migration market cap
+ * @param percentageSupplyOnMigration - The percentage of supply on migration
+ * @returns The migration quote threshold
+ */
+export const getMigrationQuoteThreshold = (
+    migrationMarketCap: BN,
+    percentageSupplyOnMigration: number
+): number => {
+    return migrationMarketCap
+        .mul(new BN(percentageSupplyOnMigration))
+        .div(new BN(10000))
+        .toNumber()
 }
