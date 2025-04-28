@@ -4,18 +4,18 @@ import {
     type ConfigParameters,
     type BuildCurveParam,
     BuildCurveByMarketCapParam,
-} from './types'
-import { MAX_SQRT_PRICE } from './constants'
+} from '../types'
+import { MAX_SQRT_PRICE } from '../constants'
 import {
     getSqrtPriceFromPrice,
     getMigrationBaseToken,
     getTotalVestingAmount,
     getFirstCurve,
     getTotalSupplyFromCurve,
-    getPercentageSupplyOnMigration,
-    getMigrationQuoteThreshold,
+    calculatePercentageSupplyOnMigration,
+    calculateMigrationQuoteThreshold,
 } from './common'
-import { getInitialLiquidityFromDeltaBase } from './math/curve'
+import { getInitialLiquidityFromDeltaBase } from '../math/curve'
 
 /**
  * Build a custom constant product curve
@@ -173,14 +173,14 @@ export function buildCurveByMarketCap(
         totalTokenSupply,
     } = buildCurveByMarketCapParam
 
-    const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
+    const percentageSupplyOnMigration = calculatePercentageSupplyOnMigration(
         new BN(initialMarketCap),
         new BN(migrationMarketCap),
         lockedVesting,
         new BN(totalTokenSupply)
     )
 
-    const migrationQuoteThreshold = getMigrationQuoteThreshold(
+    const migrationQuoteThreshold = calculateMigrationQuoteThreshold(
         new BN(migrationMarketCap),
         percentageSupplyOnMigration
     )

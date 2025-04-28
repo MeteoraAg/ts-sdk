@@ -17,8 +17,6 @@ export const PARTNER_SURPLUS_SHARE = 80 // 80%
 export const SWAP_BUFFER_PERCENTAGE = 25 // 25%
 export const MAX_SWALLOW_PERCENTAGE = 20 // 20%
 
-export const COMMITMENT = 'confirmed'
-
 // Pubkey
 export const DYNAMIC_BONDING_CURVE_PROGRAM_ID = new PublicKey(
     'dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN'

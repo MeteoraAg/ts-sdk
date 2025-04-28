@@ -1,7 +1,5 @@
-export * from './client'
-
+export * from './DbcClient'
 export * from './types'
-
 export * from './constants'
-
-export * from './build'
+export * from './helpers'
+export * from './services'

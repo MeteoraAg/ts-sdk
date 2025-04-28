@@ -1,6 +1,7 @@
 {
   "name": "ts-sdk",
   "devDependencies": {
+    "@types/bn.js": "^5.1.6",
     "prettier": "^3.5.3",
     "turbo": "^2.5.0",
     "typescript": "5.8.2"

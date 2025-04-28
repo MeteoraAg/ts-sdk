@@ -1,5 +1,5 @@
 import { expect, test, describe } from 'bun:test'
-import { buildCurve, buildCurveByMarketCap } from '../src/build'
+import { buildCurve, buildCurveByMarketCap, convertBNToDecimal } from '../src'
 import BN from 'bn.js'
 import {
     ActivationType,
@@ -10,7 +10,6 @@ import {
     TokenDecimal,
     TokenType,
 } from '../src'
-import { convertBNToDecimal } from '../src/utils'
 
 describe('buildCurveByMarketCap', () => {
     const baseParams = {

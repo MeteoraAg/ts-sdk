@@ -7,7 +7,7 @@ import {
     METAPLEX_PROGRAM_ID,
     VAULT_PROGRAM_ID,
     DYNAMIC_BONDING_CURVE_PROGRAM_ID,
-} from './constants'
+} from '../constants'
 import { getFirstKey, getSecondKey } from './utils'
 
 const SEED = Object.freeze({
@@ -30,22 +30,6 @@ const SEED = Object.freeze({
     BASE_LOCKER: 'base_locker',
     VAULT: 'vault',
 })
-
-/////////////////////
-// EVENT AUTHORITY //
-/////////////////////
-
-/**
- * Derive the dynamic bonding curve event authority
- * @returns The event authority
- */
-export function deriveEventAuthority(): PublicKey {
-    const [eventAuthority] = PublicKey.findProgramAddressSync(
-        [Buffer.from(SEED.EVENT_AUTHORITY)],
-        DYNAMIC_BONDING_CURVE_PROGRAM_ID
-    )
-    return eventAuthority
-}
 
 /**
  * Derive the DAMM V2 event authority
