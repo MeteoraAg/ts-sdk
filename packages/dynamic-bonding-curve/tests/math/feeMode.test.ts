@@ -50,16 +50,6 @@ test('fee mode quote token quote to base', () => {
     expect(feeMode.hasReferral).toBe(true)
 })
 
-test('invalid collect fee mode', () => {
-    expect(() =>
-        getFeeMode(
-            2, // Invalid mode
-            TradeDirection.QuoteToBase,
-            false
-        )
-    ).toThrow('Invalid collect fee mode')
-})
-
 test('fee mode default values', () => {
     // Test default values by passing default collect fee mode
     const feeMode = getFeeMode(

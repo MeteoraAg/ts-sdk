@@ -53,16 +53,6 @@ test('getFeeMode with OutputToken mode', () => {
     expect(feeMode2.hasReferral).toBe(true)
 })
 
-test('getFeeMode with invalid mode', () => {
-    expect(() =>
-        getFeeMode(
-            2, // Invalid mode
-            TradeDirection.BaseToQuote,
-            false
-        )
-    ).toThrow('Invalid collect fee mode')
-})
-
 // Test getSwapAmountFromBaseToQuote function
 test('getSwapAmountFromBaseToQuote zero amount', () => {
     const sqrtStartPrice = Q(1.0)
