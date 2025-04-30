@@ -1,5 +1,5 @@
 import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor'
-import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
+import { createAssociatedTokenAccountIdempotentInstruction, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import {
     PublicKey,
     SystemProgram,
@@ -8,7 +8,8 @@ import {
     type GetProgramAccountsFilter,
 } from '@solana/web3.js'
 import type { DynamicBondingCurve } from './idl/dynamic-bonding-curve/idl'
-import DynamicBondingCurveIDL from './idl/dynamic-bonding-curve/idl.json'
+import DynamicBondingCurveJsonIDL from './idl/dynamic-bonding-curve/idl.json'
+import type { DynamicBondingCurve as DynamicBondingCurveIDL } from './idl/dynamic-bonding-curve/idl'
 import type { DynamicVault } from './idl/dynamic-vault/idl'
 import DynamicVaultIDL from './idl/dynamic-vault/idl.json'
 import type { DammV1 } from './idl/damm-v1/idl'
@@ -22,9 +23,10 @@ import {
     NATIVE_MINT,
     TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
-import { TokenType } from './types'
+import { SwapParam, TokenType } from './types'
 import BN from 'bn.js'
 import { COMMITMENT } from './constants'
+import { derivePoolAuthority } from './derive'
 
 /**
  * Get the first key
@@ -68,7 +70,7 @@ export function createProgram(connection: Connection) {
         commitment: COMMITMENT,
     })
     const program = new Program<DynamicBondingCurve>(
-        DynamicBondingCurveIDL,
+        DynamicBondingCurveJsonIDL,
         provider
     )
 
@@ -278,4 +280,146 @@ export function convertBNToDecimal<T>(obj: T): T {
         return result
     }
     return obj
+}
+
+/**
+ * Swap between base and quote tokens in a pool pre-launch (no account or balance validation)
+ * @param program - The program instance
+ * @param connection - The solana connection
+ * @param swapParam - The parameters for the swap
+ * @param config - The pool configuration account
+ * @param baseMint - The base token mint
+ * @param quoteMint - The quote token mint
+ * @param baseMintType - The type of the base token
+ * @param quoteMintType - The type of the quote token
+ * @param baseVault - The base token vault
+ * @param quoteVault - The quote token vault
+ * @returns A list of instructions to buy tokens from a pool pre-launch 
+ */
+export async function getBuyInstructionsPreLaunch(
+    program: Program<DynamicBondingCurveIDL>,
+    connection: Connection,
+    swapParam: SwapParam,
+    config: PublicKey,
+    baseMint: PublicKey,
+    quoteMint: PublicKey,
+    baseMintType: TokenType,
+    quoteMintType: TokenType,
+    baseVault: PublicKey,
+    quoteVault: PublicKey,
+)
+    : Promise<TransactionInstruction[]> {
+    const poolAuthority = derivePoolAuthority(program.programId)
+    const { amountIn, minimumAmountOut, swapBaseForQuote, owner } = swapParam;
+
+    let inputMint, outputMint, inputTokenProgram, outputTokenProgram;
+
+    if (swapBaseForQuote) {
+        inputMint = baseMint;
+        outputMint = quoteMint;
+        inputTokenProgram = getTokenProgram(baseMintType);
+        outputTokenProgram = getTokenProgram(quoteMintType);
+    } else {
+        inputMint = quoteMint;
+        outputMint = baseMint;
+        inputTokenProgram = getTokenProgram(quoteMintType);
+        outputTokenProgram = getTokenProgram(baseMintType);
+    }
+
+    const isSOLInput = isNativeSol(inputMint)
+    const isSOLOutput = isNativeSol(outputMint)
+
+    const inputTokenAccount = findAssociatedTokenAddress(
+        owner,
+        inputMint,
+        inputTokenProgram
+    )
+
+    const outputTokenAccount = findAssociatedTokenAddress(
+        owner,
+        outputMint,
+        outputTokenProgram
+    )
+
+    const accounts = {
+        poolAuthority,
+        config: config,
+        pool: swapParam.pool,
+        inputTokenAccount,
+        outputTokenAccount,
+        baseVault: baseVault,
+        quoteVault: quoteVault,
+        baseMint: baseMint,
+        quoteMint: quoteMint,
+        payer: owner,
+        tokenBaseProgram: swapBaseForQuote
+            ? inputTokenProgram
+            : outputTokenProgram,
+        tokenQuoteProgram: swapBaseForQuote
+            ? outputTokenProgram
+            : inputTokenProgram,
+        referralTokenAccount: swapParam.referralTokenAccount,
+    }
+
+    // Add preInstructions for ATA creation and SOL wrapping
+    const preInstructions: TransactionInstruction[] = []
+
+    // Check and create ATAs if needed
+    const inputTokenAccountInfo = await connection.getAccountInfo(inputTokenAccount)
+
+    if (!inputTokenAccountInfo) {
+        preInstructions.push(
+            createAssociatedTokenAccountIdempotentInstruction(
+                owner,
+                inputTokenAccount,
+                owner,
+                inputMint,
+                inputTokenProgram
+            )
+        )
+    }
+
+    const outputTokenAccountInfo = await connection.getAccountInfo(outputTokenAccount)
+
+    if (!outputTokenAccountInfo) {
+        preInstructions.push(
+            createAssociatedTokenAccountIdempotentInstruction(
+                owner,
+                outputTokenAccount,
+                owner,
+                outputMint,
+                outputTokenProgram
+            )
+        )
+    }
+
+    // Add SOL wrapping instructions if needed
+    if (isSOLInput) {
+        preInstructions.push(
+            ...wrapSOLInstruction(
+                owner,
+                inputTokenAccount,
+                BigInt(amountIn.toString())
+            )
+        )
+    }
+
+    // Add postInstructions for SOL unwrapping
+    const postInstructions: TransactionInstruction[] = []
+    if (isSOLInput || isSOLOutput) {
+        const unwrapIx = unwrapSOLInstruction(owner)
+        if (unwrapIx) {
+            postInstructions.push(unwrapIx)
+        }
+    }
+
+    const instruction = await program.methods
+        .swap({
+            amountIn,
+            minimumAmountOut,
+        })
+        .accountsPartial(accounts)
+        .instruction()
+
+    return [...preInstructions, instruction, ...postInstructions]
 }

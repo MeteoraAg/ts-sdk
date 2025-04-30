@@ -336,6 +336,11 @@ export type CreatePoolParam = {
     quoteTokenType: TokenType
 }
 
+export type CreatePoolBuyParam = {
+    buyAmount: BN,
+    referralTokenAccount: PublicKey | null
+}
+
 export type SwapParam = {
     pool: PublicKey
     owner: PublicKey

@@ -7,6 +7,7 @@ import {
 } from '@solana/web3.js'
 import type { DynamicBondingCurveClient } from '../client'
 import {
+    CreatePoolBuyParam,
     TokenType,
     type CreatePoolParam,
     type SwapParam,
@@ -27,12 +28,14 @@ import { METAPLEX_PROGRAM_ID } from '../constants'
 import { prepareSwapParams } from '../common'
 import {
     findAssociatedTokenAddress,
+    getBuyInstructionsPreLaunch,
     isNativeSol,
     unwrapSOLInstruction,
     wrapSOLInstruction,
 } from '../utils'
 import { swapQuote } from '../math/swapQuote'
 import { validateBalance, validateBaseTokenType } from '../checks'
+import { BN } from 'bn.js'
 
 export class PoolService {
     private connection: Connection
@@ -44,9 +47,10 @@ export class PoolService {
     /**
      * Create a new pool
      * @param createPoolParam - The parameters for the pool
+     * @param buyParam - The parameters for a optional buy
      * @returns A new pool
      */
-    async createPool(createPoolParam: CreatePoolParam): Promise<Transaction> {
+    async createPool(createPoolParam: CreatePoolParam, buyParam?: CreatePoolBuyParam): Promise<Transaction> {
         const program = this.programClient.getProgram()
         const {
             quoteMint,
@@ -78,7 +82,36 @@ export class PoolService {
             quoteMint,
             program.programId
         )
+
         const baseMetadata = deriveMetadata(baseMint)
+
+        const buyInstructions: TransactionInstruction[] = [];
+
+        if (buyParam) {
+            buyInstructions.push(
+                ...(await getBuyInstructionsPreLaunch(
+                    program,
+                    this.connection,
+                    {
+                        pool,
+                        owner: payer,
+                        amountIn: buyParam.buyAmount,
+                        // Workaround for the fact that the pool is not yet created and there can not be any slippage
+                        // Seems like testing with 0 breaks something? Need to investigate
+                        minimumAmountOut: new BN(1),
+                        swapBaseForQuote: false,
+                        referralTokenAccount: buyParam.referralTokenAccount,
+                    },
+                    config,
+                    baseMint,
+                    quoteMint,
+                    baseTokenType,
+                    quoteTokenType,
+                    baseVault,
+                    quoteVault,
+                ))
+            )
+        }
 
         if (baseTokenType === TokenType.SPL) {
             const accounts = {
@@ -106,6 +139,7 @@ export class PoolService {
                     uri,
                 })
                 .accountsPartial(accounts)
+                .postInstructions(buyInstructions)
                 .transaction()
         }
 
@@ -123,6 +157,7 @@ export class PoolService {
                 tokenQuoteProgram: TOKEN_PROGRAM_ID,
                 tokenProgram: TOKEN_2022_PROGRAM_ID,
             }
+
             return program.methods
                 .initializeVirtualPoolWithToken2022({
                     name,
@@ -130,6 +165,7 @@ export class PoolService {
                     uri,
                 })
                 .accountsPartial(accounts)
+                .postInstructions(buyInstructions)
                 .transaction()
         }
 
