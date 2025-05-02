@@ -16,6 +16,7 @@ import {
     calculateMigrationQuoteThreshold,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
+import { calculateDynamicFeeParameters } from './utils'
 
 /**
  * Build a custom constant product curve
@@ -125,15 +126,7 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
                 feeSchedulerMode: feeSchedulerMode,
             },
             dynamicFee: dynamicFeeEnabled
-                ? {
-                      binStep: 1,
-                      binStepU128: new BN('1844674407370955'),
-                      filterPeriod: 10,
-                      decayPeriod: 120,
-                      reductionFactor: 5000,
-                      variableFeeControl: 2000000,
-                      maxVolatilityAccumulator: 100000,
-                  }
+                ? calculateDynamicFeeParameters(baseFeeBps, 0.2)
                 : null,
         },
         activationType: activationType,
