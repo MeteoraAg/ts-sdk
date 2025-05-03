@@ -11,6 +11,8 @@ This is a monorepo for all of Meteora's Typescript SDKs. It contains the source 
 ### Dynamic Bonding Curve SDK
 
 ```bash
+npm install @meteora-ag/dynamic-bonding-curve-sdk
+# or
 pnpm install @meteora-ag/dynamic-bonding-curve-sdk
 # or
 yarn add @meteora-ag/dynamic-bonding-curve-sdk
