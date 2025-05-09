@@ -43,3 +43,18 @@
 - fix: changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
 
 ---
+
+## [1.1.4] - 2025-05-09
+
+### Release Notes
+
+#### Feature Changes
+
+- feat: added `buildCurveGraphAndCreateConfig` function
+- feat: added `leftover` parameter to `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions
+
+#### Breaking Changes
+
+- `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions now require a `leftover` parameter.
+- `buildCurveGraphAndCreateConfig` uses liquidityWeights[] instead of kFactor now.
+- Added receiver option in `claimPartnerTradingFee` and `claimCreatorTradingFee`
