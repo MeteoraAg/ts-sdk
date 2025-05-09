@@ -34,43 +34,24 @@ All notable changes to the Dynamic Bonding Curve SDK will be documented in this 
 
 ### Changed
 
-- Updated `buildCurveGraphAndCreateConfig` to use `liquidityWeights[]` instead of `kFactor`
-- Modified dynamic fee calculation to be 20% of minimum base fee
-- Changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
+- fix: updated `buildCurveGraphAndCreateConfig` to use `liquidityWeights[]` instead of `kFactor`
+- fix: added payer option to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
+- fix: updated dynamic fee calculation to be 20% of minimum base fee
+- fix: changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
 
-### Added
+---
 
-- Payer option to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
+## [1.1.4] - 2025-05-09
 
-## [1.1.2] - 2025-04-30
+### Release Notes
 
-### Added
+#### Feature Changes
 
-- New fee options: 4% and 6% graduation fees
-- New functions:
-    - `creatorWithdrawSurplus`
-    - `claimCreatorTradingFee`
-    - `createPoolAndBuy`
-- New getter functions
-- SDK modularization and RPC call optimization
+- feat: added `buildCurveGraphAndCreateConfig` function
+- feat: added `leftover` parameter to `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions
 
-### Changed
+#### Breaking Changes
 
-- Updated service and getter function calling patterns
-
-### Breaking Changes
-
-- Added required `creatorTradingFeePercentage` parameter to:
-    - `createConfig`
-    - `buildCurveAndCreateConfig`
-    - `buildCurveAndCreateConfigByMarketCap`
-- Updated function namespaces:
-    - `client.partners` → `client.partner`
-    - `client.migrations` → `client.migration`
-    - `client.creators` → `client.creator`
-    - `client.pools` → `client.pool`
-    - `client.getProgram()` → `client.state`
-- New pool address derivation functions:
-    1. `deriveDbcPoolAddress`
-    2. `deriveDammV1PoolAddress`
-    3. `deriveDammV2PoolAddress`
+- `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions now require a `leftover` parameter.
+- `buildCurveGraphAndCreateConfig` uses liquidityWeights[] instead of kFactor now.
+- Added receiver option in `claimPartnerTradingFee` and `claimCreatorTradingFee`

@@ -190,9 +190,13 @@ describe('buildCurve tests', () => {
         )
         let liquidityWeights: number[] = []
         for (let i = 0; i < 16; i++) {
-            liquidityWeights[i] = new Decimal(0.6)
-                .pow(new Decimal(i))
-                .toNumber()
+            if (i < 15) {
+                liquidityWeights[i] = new Decimal(1.2)
+                    .pow(new Decimal(i))
+                    .toNumber()
+            } else {
+                liquidityWeights[i] = 80
+            }
         }
 
         console.log('liquidityWeights:', liquidityWeights)
@@ -202,11 +206,8 @@ describe('buildCurve tests', () => {
             totalTokenSupply: 1000000000,
             initialMarketCap: 15,
             migrationMarketCap: 255,
-            liquidityWeights,
             tokenQuoteDecimal: TokenDecimal.SIX,
             tokenBaseDecimal: TokenDecimal.NINE,
-            leftover: 200000000,
-            migrationOption: MigrationOption.MET_DAMM,
             lockedVesting: {
                 amountPerPeriod: new BN(1),
                 cliffDurationFromMigrationTime: new BN(1),
@@ -214,6 +215,9 @@ describe('buildCurve tests', () => {
                 numberOfPeriod: new BN(1),
                 cliffUnlockAmount: new BN(10_000_000 * 10 ** TokenDecimal.SIX), // 10M for creator
             },
+            leftover: 200000000,
+            liquidityWeights,
+            migrationOption: MigrationOption.MET_DAMM,
         }
 
         const config = buildCurveGraph(curveGraphParams)
@@ -228,7 +232,7 @@ describe('buildCurve tests', () => {
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
-        expect(config.migrationQuoteThreshold.toString()).toEqual('15812522')
+        expect(config.migrationQuoteThreshold.toString()).toEqual('76007119')
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
@@ -254,10 +258,10 @@ describe('buildCurve tests', () => {
             totalTokenSupply: 1000000000,
             initialMarketCap: 5000,
             migrationMarketCap: 1000000,
-            liquidityWeights,
             tokenQuoteDecimal: TokenDecimal.SIX,
             tokenBaseDecimal: TokenDecimal.SIX,
             leftover: 1000,
+            liquidityWeights,
             migrationOption: MigrationOption.MET_DAMM,
         }
 
