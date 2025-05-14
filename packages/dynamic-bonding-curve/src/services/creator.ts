@@ -185,10 +185,10 @@ export class CreatorService extends DynamicBondingCurveProgram {
         } = await this.prepareTokenAccounts(
             feeReceiver,
             payer,
-            poolConfigState.quoteMint,
             poolState.baseMint,
-            tokenQuoteProgram,
-            tokenBaseProgram
+            poolConfigState.quoteMint,
+            tokenBaseProgram,
+            tokenQuoteProgram
         )
 
         const accounts = {
@@ -246,17 +246,23 @@ export class CreatorService extends DynamicBondingCurveProgram {
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         if (isSOLQuoteMint) {
+            // check if receiver is provided, if it is, use tempWSolAcc, if not use creator
+            const tempWSol = receiver ? tempWSolAcc : creator
+            // check if receiver is provided, if it is, use receiver, if not use creator
+            const feeReceiver = receiver ? receiver : creator
+
             const result = await this.claimWithQuoteMintSol({
                 creator,
                 payer,
-                feeReceiver: receiver,
-                tempWSolAcc,
+                feeReceiver,
+                tempWSolAcc: tempWSol,
                 pool,
                 poolState,
                 poolConfigState,
                 tokenBaseProgram,
                 tokenQuoteProgram,
             })
+
             return this.program.methods
                 .claimCreatorTradingFee(maxBaseAmount, maxQuoteAmount)
                 .accountsPartial(result.accounts)
@@ -264,10 +270,13 @@ export class CreatorService extends DynamicBondingCurveProgram {
                 .postInstructions(result.postInstructions)
                 .transaction()
         } else {
+            // check if receiver is provided, if it is, use receiver, if not use creator
+            const feeReceiver = receiver ? receiver : creator
+
             const result = await this.claimWithQuoteMintNotSol({
                 creator,
                 payer,
-                feeReceiver: receiver,
+                feeReceiver,
                 pool,
                 poolState,
                 poolConfigState,
