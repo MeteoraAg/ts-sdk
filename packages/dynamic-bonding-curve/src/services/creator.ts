@@ -96,15 +96,6 @@ export class CreatorService extends DynamicBondingCurveProgram {
             poolConfigState.quoteTokenFlag
         )
 
-        const createFeeMetrics = await this.state.getPoolCreatorFeeMetrics(pool)
-
-        const creatorBaseFee = createFeeMetrics.creatorBaseFee
-        const creatorQuoteFee = createFeeMetrics.creatorQuoteFee
-
-        if (creatorBaseFee.isZero() && creatorQuoteFee.isZero()) {
-            throw new Error('No creator fees to claim')
-        }
-
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         let tokenBaseAccount: PublicKey
@@ -113,46 +104,13 @@ export class CreatorService extends DynamicBondingCurveProgram {
         const preInstructions: TransactionInstruction[] = []
         const postInstructions: TransactionInstruction[] = []
 
-        if (isSOLQuoteMint) {
-            tokenBaseAccount = findAssociatedTokenAddress(
-                receiver ? receiver : creator,
-                poolState.baseMint,
-                tokenBaseProgram
-            )
-            tokenQuoteAccount = findAssociatedTokenAddress(
-                tempWSolAcc,
-                poolConfigState.quoteMint,
-                tokenQuoteProgram
-            )
+        const feeReceiver = receiver ? receiver : creator
 
-            const createTokenQuoteAccountIx =
-                createAssociatedTokenAccountIdempotentInstruction(
-                    payer,
-                    tokenQuoteAccount,
-                    tempWSolAcc,
-                    poolConfigState.quoteMint
-                )
-            createTokenQuoteAccountIx &&
-                preInstructions.push(createTokenQuoteAccountIx)
+        const tempWSol = receiver ? tempWSolAcc : creator
 
-            const createTokenBaseAccountIx =
-                createAssociatedTokenAccountIdempotentInstruction(
-                    payer,
-                    tokenBaseAccount,
-                    receiver ? receiver : creator,
-                    poolState.baseMint
-                )
-            createTokenBaseAccountIx &&
-                preInstructions.push(createTokenBaseAccountIx)
-
-            const unwrapSolIx = unwrapSOLInstruction(
-                tempWSolAcc,
-                receiver ? receiver : creator
-            )
-            unwrapSolIx && postInstructions.push(unwrapSolIx)
-        } else {
+        if (feeReceiver == creator) {
             const tokenAccountsResult = await this.prepareTokenAccounts(
-                receiver ? receiver : creator,
+                feeReceiver,
                 payer,
                 poolState.baseMint,
                 poolConfigState.quoteMint,
@@ -163,6 +121,42 @@ export class CreatorService extends DynamicBondingCurveProgram {
             tokenBaseAccount = tokenAccountsResult.ataTokenA
             tokenQuoteAccount = tokenAccountsResult.ataTokenB
             preInstructions.push(...tokenAccountsResult.instructions)
+        } else if (feeReceiver != creator) {
+            tokenBaseAccount = findAssociatedTokenAddress(
+                feeReceiver,
+                poolState.baseMint,
+                tokenBaseProgram
+            )
+            tokenQuoteAccount = findAssociatedTokenAddress(
+                tempWSol,
+                poolConfigState.quoteMint,
+                tokenQuoteProgram
+            )
+
+            const createTokenBaseAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenBaseAccount,
+                    feeReceiver,
+                    poolState.baseMint
+                )
+            createTokenBaseAccountIx &&
+                preInstructions.push(createTokenBaseAccountIx)
+
+            const createTokenQuoteAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenQuoteAccount,
+                    tempWSol,
+                    poolConfigState.quoteMint
+                )
+            createTokenQuoteAccountIx &&
+                preInstructions.push(createTokenQuoteAccountIx)
+
+            if (isSOLQuoteMint) {
+                const unwrapSolIx = unwrapSOLInstruction(tempWSol, receiver)
+                unwrapSolIx && postInstructions.push(unwrapSolIx)
+            }
         }
 
         const accounts = {
