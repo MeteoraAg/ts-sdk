@@ -1,5 +1,6 @@
 import {
     Commitment,
+    PublicKey,
     SystemProgram,
     Transaction,
     TransactionInstruction,
@@ -75,6 +76,7 @@ export class CreatorService extends DynamicBondingCurveProgram {
             maxQuoteAmount,
             receiver,
             payer,
+            tempWSolAcc,
         } = claimCreatorTradingFeeParam
 
         const poolState = await this.state.getPool(pool)
@@ -94,28 +96,73 @@ export class CreatorService extends DynamicBondingCurveProgram {
             poolConfigState.quoteTokenFlag
         )
 
-        // const preInstructions: TransactionInstruction[] = []
-        const postInstructions: TransactionInstruction[] = []
-        const {
-            ataTokenA: tokenBaseAccount,
-            ataTokenB: tokenQuoteAccount,
-            instructions: preInstructions,
-        } = await this.prepareTokenAccounts(
-            receiver ? receiver : creator,
-            payer,
-            poolState.baseMint,
-            poolConfigState.quoteMint,
-            tokenBaseProgram,
-            tokenQuoteProgram
-        )
+        const createFeeMetrics = await this.state.getPoolCreatorFeeMetrics(pool)
+
+        const creatorBaseFee = createFeeMetrics.creatorBaseFee
+        const creatorQuoteFee = createFeeMetrics.creatorQuoteFee
+
+        if (creatorBaseFee.isZero() && creatorQuoteFee.isZero()) {
+            throw new Error('No creator fees to claim')
+        }
 
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
+        let tokenBaseAccount: PublicKey
+        let tokenQuoteAccount: PublicKey
+
+        const preInstructions: TransactionInstruction[] = []
+        const postInstructions: TransactionInstruction[] = []
+
         if (isSOLQuoteMint) {
+            tokenBaseAccount = findAssociatedTokenAddress(
+                receiver ? receiver : creator,
+                poolState.baseMint,
+                tokenBaseProgram
+            )
+            tokenQuoteAccount = findAssociatedTokenAddress(
+                tempWSolAcc,
+                poolConfigState.quoteMint,
+                tokenQuoteProgram
+            )
+
+            const createTokenQuoteAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenQuoteAccount,
+                    tempWSolAcc,
+                    poolConfigState.quoteMint
+                )
+            createTokenQuoteAccountIx &&
+                preInstructions.push(createTokenQuoteAccountIx)
+
+            const createTokenBaseAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenBaseAccount,
+                    receiver ? receiver : creator,
+                    poolState.baseMint
+                )
+            createTokenBaseAccountIx &&
+                preInstructions.push(createTokenBaseAccountIx)
+
             const unwrapSolIx = unwrapSOLInstruction(
+                tempWSolAcc,
                 receiver ? receiver : creator
             )
             unwrapSolIx && postInstructions.push(unwrapSolIx)
+        } else {
+            const tokenAccountsResult = await this.prepareTokenAccounts(
+                receiver ? receiver : creator,
+                payer,
+                poolState.baseMint,
+                poolConfigState.quoteMint,
+                tokenBaseProgram,
+                tokenQuoteProgram
+            )
+
+            tokenBaseAccount = tokenAccountsResult.ataTokenA
+            tokenQuoteAccount = tokenAccountsResult.ataTokenB
+            preInstructions.push(...tokenAccountsResult.instructions)
         }
 
         const accounts = {
@@ -187,7 +234,7 @@ export class CreatorService extends DynamicBondingCurveProgram {
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         if (isSOLQuoteMint) {
-            const unwrapIx = unwrapSOLInstruction(creator)
+            const unwrapIx = unwrapSOLInstruction(creator, creator)
             if (unwrapIx) {
                 postInstructions.push(unwrapIx)
             }

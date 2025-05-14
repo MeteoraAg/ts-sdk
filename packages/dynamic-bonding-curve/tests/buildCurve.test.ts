@@ -73,8 +73,8 @@ describe('buildCurve tests', () => {
         console.log('\n testing build curve with market cap parameters...')
         const config = buildCurveByMarketCap({
             ...baseParams,
-            initialMarketCap: 99.1669972233,
-            migrationMarketCap: 462.779320376,
+            initialMarketCap: 23.5,
+            migrationMarketCap: 405.882352941,
         })
 
         console.log('config:', convertBNToDecimal(config))
@@ -241,6 +241,7 @@ describe('buildCurve tests', () => {
             '\n testing build graph curve with customisable curve values v2...'
         )
         let liquidityWeights: number[] = []
+
         liquidityWeights = [
             0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24,
             20.48, 40.96, 81.92, 163.84, 327.68,
@@ -251,8 +252,8 @@ describe('buildCurve tests', () => {
         const curveGraphParams = {
             ...baseParams,
             totalTokenSupply: 1000000000,
-            initialMarketCap: 1000,
-            migrationMarketCap: 275000,
+            initialMarketCap: 0.0006,
+            migrationMarketCap: 1000000,
             tokenQuoteDecimal: TokenDecimal.SIX,
             tokenBaseDecimal: TokenDecimal.SIX,
             leftover: 1000,

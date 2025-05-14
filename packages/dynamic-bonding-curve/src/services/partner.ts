@@ -1,5 +1,6 @@
 import {
     Commitment,
+    PublicKey,
     SystemProgram,
     TransactionInstruction,
     type Connection,
@@ -27,8 +28,12 @@ import {
     getOrCreateATAInstruction,
     buildCurveGraph,
     isNativeSol,
+    findAssociatedTokenAddress,
 } from '../helpers'
-import { NATIVE_MINT } from '@solana/spl-token'
+import {
+    createAssociatedTokenAccountIdempotentInstruction,
+    NATIVE_MINT,
+} from '@solana/spl-token'
 import { StateService } from './state'
 
 export class PartnerService extends DynamicBondingCurveProgram {
@@ -233,6 +238,7 @@ export class PartnerService extends DynamicBondingCurveProgram {
             maxBaseAmount,
             maxQuoteAmount,
             receiver,
+            tempWSolAcc,
         } = claimTradingFeeParam
 
         const poolState = await this.state.getPool(pool)
@@ -252,27 +258,74 @@ export class PartnerService extends DynamicBondingCurveProgram {
             poolConfigState.quoteTokenFlag
         )
 
-        const postInstructions: TransactionInstruction[] = []
-        const {
-            ataTokenA: tokenBaseAccount,
-            ataTokenB: tokenQuoteAccount,
-            instructions: preInstructions,
-        } = await this.prepareTokenAccounts(
-            receiver ? receiver : feeClaimer,
-            payer,
-            poolState.baseMint,
-            poolConfigState.quoteMint,
-            tokenBaseProgram,
-            tokenQuoteProgram
-        )
+        const partnerFeeMetrics =
+            await this.state.getPoolPartnerFeeMetrics(pool)
+
+        const partnerBaseFee = partnerFeeMetrics.partnerBaseFee
+        const partnerQuoteFee = partnerFeeMetrics.partnerQuoteFee
+
+        if (partnerBaseFee.isZero() && partnerQuoteFee.isZero()) {
+            throw new Error('No partner fees to claim')
+        }
 
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
+        let tokenBaseAccount: PublicKey
+        let tokenQuoteAccount: PublicKey
+
+        const preInstructions: TransactionInstruction[] = []
+        const postInstructions: TransactionInstruction[] = []
+
         if (isSOLQuoteMint) {
+            tokenBaseAccount = findAssociatedTokenAddress(
+                receiver ? receiver : feeClaimer,
+                poolState.baseMint,
+                tokenBaseProgram
+            )
+            tokenQuoteAccount = findAssociatedTokenAddress(
+                tempWSolAcc,
+                poolConfigState.quoteMint,
+                tokenQuoteProgram
+            )
+
+            const createTokenQuoteAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenQuoteAccount,
+                    tempWSolAcc,
+                    poolConfigState.quoteMint
+                )
+            createTokenQuoteAccountIx &&
+                preInstructions.push(createTokenQuoteAccountIx)
+
+            const createTokenBaseAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenBaseAccount,
+                    receiver ? receiver : feeClaimer,
+                    poolState.baseMint
+                )
+            createTokenBaseAccountIx &&
+                preInstructions.push(createTokenBaseAccountIx)
+
             const unwrapSolIx = unwrapSOLInstruction(
+                tempWSolAcc,
                 receiver ? receiver : feeClaimer
             )
             unwrapSolIx && postInstructions.push(unwrapSolIx)
+        } else {
+            const tokenAccountsResult = await this.prepareTokenAccounts(
+                receiver ? receiver : feeClaimer,
+                payer,
+                poolState.baseMint,
+                poolConfigState.quoteMint,
+                tokenBaseProgram,
+                tokenQuoteProgram
+            )
+
+            tokenBaseAccount = tokenAccountsResult.ataTokenA
+            tokenQuoteAccount = tokenAccountsResult.ataTokenB
+            preInstructions.push(...tokenAccountsResult.instructions)
         }
 
         return this.program.methods
@@ -337,6 +390,7 @@ export class PartnerService extends DynamicBondingCurveProgram {
 
         if (poolConfigState.quoteMint.equals(NATIVE_MINT)) {
             const unwrapSolIx = unwrapSOLInstruction(
+                partnerWithdrawSurplusParam.feeClaimer,
                 partnerWithdrawSurplusParam.feeClaimer
             )
             unwrapSolIx && postInstructions.push(unwrapSolIx)
