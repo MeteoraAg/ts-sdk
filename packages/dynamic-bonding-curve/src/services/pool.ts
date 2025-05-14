@@ -367,7 +367,7 @@ export class PoolService extends DynamicBondingCurveProgram {
                     NATIVE_MINT.toBase58()
                 )
             ) {
-                const unwrapIx = unwrapSOLInstruction(poolCreator)
+                const unwrapIx = unwrapSOLInstruction(poolCreator, poolCreator)
                 unwrapIx && postInstructions.push(unwrapIx)
             }
 
@@ -463,7 +463,7 @@ export class PoolService extends DynamicBondingCurveProgram {
                 NATIVE_MINT.toBase58()
             )
         ) {
-            const unwrapIx = unwrapSOLInstruction(owner)
+            const unwrapIx = unwrapSOLInstruction(owner, owner)
 
             unwrapIx && postInstructions.push(unwrapIx)
         }
