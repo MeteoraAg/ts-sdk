@@ -430,6 +430,29 @@ export type ClaimCreatorTradingFeeParam = {
     tempWSolAcc?: PublicKey
 }
 
+export type ClaimWithQuoteMintSolParam = {
+    creator: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    tempWSolAcc?: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
+export type ClaimWithQuoteMintNotSolParam = {
+    creator: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
 export type CreatorWithdrawSurplusParam = {
     creator: PublicKey
     virtualPool: PublicKey
