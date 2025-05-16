@@ -241,30 +241,35 @@ describe('buildCurve tests', () => {
             '\n testing build graph curve with customisable curve values v2...'
         )
 
-        const liquidityWeights: number[] = []
-
-        for (let i = 0; i < 16; i++) {
-            if (i === 0) {
-                liquidityWeights[i] = 1
-            } else if (i < 5) {
-                liquidityWeights[i] = new Decimal(i + i).toNumber()
-            } else {
-                liquidityWeights[i] = new Decimal(1.4)
-                    .pow(new Decimal(i))
-                    .toNumber()
-            }
-        }
+        const liquidityWeights = [
+            0.01, // 0
+            0.02, // 1
+            0.04, // 2
+            0.08, // 3
+            0.16, // 4
+            0.32, // 5
+            0.64, // 6
+            1.28, // 7
+            2.56, // 8
+            5.12, // 9
+            10.24, // 10
+            20.48, // 11
+            40.96, // 12
+            81.92, // 13
+            163.84, // 14
+            327.68, // 15
+        ]
 
         console.log('liquidityWeights:', liquidityWeights)
 
         const curveGraphParams = {
             ...baseParams,
-            totalTokenSupply: 1000000000,
-            initialMarketCap: 1000,
-            migrationMarketCap: 1000000,
+            totalTokenSupply: 100000000,
+            initialMarketCap: 50,
+            migrationMarketCap: 100000,
             tokenQuoteDecimal: TokenDecimal.SIX,
             tokenBaseDecimal: TokenDecimal.SIX,
-            leftover: 250000000,
+            leftover: 50000000,
             liquidityWeights,
             migrationOption: MigrationOption.MET_DAMM,
         }
