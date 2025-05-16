@@ -76,7 +76,7 @@ export const getOrCreateATAInstruction = async (
  */
 export function unwrapSOLInstruction(
     owner: PublicKey,
-    receiver?: PublicKey,
+    receiver: PublicKey,
     allowOwnerOffCurve = true
 ): TransactionInstruction | null {
     const wSolATAAccount = getAssociatedTokenAddressSync(

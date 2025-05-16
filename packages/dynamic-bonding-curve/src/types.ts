@@ -340,6 +340,31 @@ export type ClaimTradingFeeParam = {
     tempWSolAcc?: PublicKey
 }
 
+export type ClaimPartnerTradingFeeWithQuoteMintSolParam = {
+    feeClaimer: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    config: PublicKey
+    tempWSolAcc?: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
+export type ClaimPartnerTradingFeeWithQuoteMintNotSolParam = {
+    feeClaimer: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    config: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
 export type CreateVirtualPoolMetadataParam = {
     virtualPool: PublicKey
     name: string
@@ -440,7 +465,7 @@ export type ClaimCreatorTradingFeeParam = {
     tempWSolAcc?: PublicKey
 }
 
-export type ClaimWithQuoteMintSolParam = {
+export type ClaimCreatorTradingFeeWithQuoteMintSolParam = {
     creator: PublicKey
     payer: PublicKey
     feeReceiver: PublicKey
@@ -452,7 +477,7 @@ export type ClaimWithQuoteMintSolParam = {
     tokenQuoteProgram: PublicKey
 }
 
-export type ClaimWithQuoteMintNotSolParam = {
+export type ClaimCreatorTradingFeeWithQuoteMintNotSolParam = {
     creator: PublicKey
     payer: PublicKey
     feeReceiver: PublicKey

@@ -17,6 +17,8 @@ import {
     BuildCurveAndCreateConfigByMarketCapParam,
     BuildCurveAndCreateConfigParam,
     BuildCurveGraphAndCreateConfigParam,
+    ClaimPartnerTradingFeeWithQuoteMintNotSolParam,
+    ClaimPartnerTradingFeeWithQuoteMintSolParam,
 } from '../types'
 import {
     derivePartnerMetadata,
@@ -224,6 +226,167 @@ export class PartnerService extends DynamicBondingCurveProgram {
     }
 
     /**
+     * Claim trading fee with quote mint SOL
+     * @param claimWithQuoteMintSolParam - The parameters for the claim with quote mint SOL
+     * @returns A claim trading fee with quote mint SOL accounts, pre instructions and post instructions
+     */
+    private async claimWithQuoteMintSol(
+        claimWithQuoteMintSolParam: ClaimPartnerTradingFeeWithQuoteMintSolParam
+    ): Promise<{
+        accounts: {
+            poolAuthority: PublicKey
+            config: PublicKey
+            pool: PublicKey
+            tokenAAccount: PublicKey
+            tokenBAccount: PublicKey
+            baseVault: PublicKey
+            quoteVault: PublicKey
+            baseMint: PublicKey
+            quoteMint: PublicKey
+            feeClaimer: PublicKey
+            tokenBaseProgram: PublicKey
+            tokenQuoteProgram: PublicKey
+        }
+        preInstructions: TransactionInstruction[]
+        postInstructions: TransactionInstruction[]
+    }> {
+        const {
+            feeClaimer,
+            payer,
+            feeReceiver,
+            config,
+            tempWSolAcc,
+            pool,
+            poolState,
+            poolConfigState,
+            tokenBaseProgram,
+            tokenQuoteProgram,
+        } = claimWithQuoteMintSolParam
+
+        const preInstructions: TransactionInstruction[] = []
+        const postInstructions: TransactionInstruction[] = []
+
+        const tokenBaseAccount = findAssociatedTokenAddress(
+            feeReceiver,
+            poolState.baseMint,
+            tokenBaseProgram
+        )
+
+        const tokenQuoteAccount = findAssociatedTokenAddress(
+            tempWSolAcc,
+            poolConfigState.quoteMint,
+            tokenQuoteProgram
+        )
+
+        const createTokenBaseAccountIx =
+            createAssociatedTokenAccountIdempotentInstruction(
+                payer,
+                tokenBaseAccount,
+                feeReceiver,
+                poolState.baseMint
+            )
+        createTokenBaseAccountIx &&
+            preInstructions.push(createTokenBaseAccountIx)
+
+        const createTokenQuoteAccountIx =
+            createAssociatedTokenAccountIdempotentInstruction(
+                payer,
+                tokenQuoteAccount,
+                tempWSolAcc,
+                poolConfigState.quoteMint
+            )
+        createTokenQuoteAccountIx &&
+            preInstructions.push(createTokenQuoteAccountIx)
+
+        const unwrapSolIx = unwrapSOLInstruction(tempWSolAcc, feeReceiver)
+        unwrapSolIx && postInstructions.push(unwrapSolIx)
+
+        const accounts = {
+            poolAuthority: this.poolAuthority,
+            config,
+            pool,
+            tokenAAccount: tokenBaseAccount,
+            tokenBAccount: tokenQuoteAccount,
+            baseVault: poolState.baseVault,
+            quoteVault: poolState.quoteVault,
+            baseMint: poolState.baseMint,
+            quoteMint: poolConfigState.quoteMint,
+            feeClaimer,
+            tokenBaseProgram,
+            tokenQuoteProgram,
+        }
+
+        return { accounts, preInstructions, postInstructions }
+    }
+
+    /**
+     * Claim trading fee with quote mint not SOL
+     * @param claimWithQuoteMintNotSolParam - The parameters for the claim with quote mint not SOL
+     * @returns A claim trading fee with quote mint not SOL accounts and pre instructions
+     */
+    private async claimWithQuoteMintNotSol(
+        claimWithQuoteMintNotSolParam: ClaimPartnerTradingFeeWithQuoteMintNotSolParam
+    ): Promise<{
+        accounts: {
+            poolAuthority: PublicKey
+            config: PublicKey
+            pool: PublicKey
+            tokenAAccount: PublicKey
+            tokenBAccount: PublicKey
+            baseVault: PublicKey
+            quoteVault: PublicKey
+            baseMint: PublicKey
+            quoteMint: PublicKey
+            feeClaimer: PublicKey
+            tokenBaseProgram: PublicKey
+            tokenQuoteProgram: PublicKey
+        }
+        preInstructions: TransactionInstruction[]
+    }> {
+        const {
+            feeClaimer,
+            payer,
+            feeReceiver,
+            config,
+            pool,
+            poolState,
+            poolConfigState,
+            tokenBaseProgram,
+            tokenQuoteProgram,
+        } = claimWithQuoteMintNotSolParam
+
+        const {
+            ataTokenA: tokenBaseAccount,
+            ataTokenB: tokenQuoteAccount,
+            instructions: preInstructions,
+        } = await this.prepareTokenAccounts(
+            feeReceiver,
+            payer,
+            poolState.baseMint,
+            poolConfigState.quoteMint,
+            tokenBaseProgram,
+            tokenQuoteProgram
+        )
+
+        const accounts = {
+            poolAuthority: this.poolAuthority,
+            config,
+            pool,
+            tokenAAccount: tokenBaseAccount,
+            tokenBAccount: tokenQuoteAccount,
+            baseVault: poolState.baseVault,
+            quoteVault: poolState.quoteVault,
+            baseMint: poolState.baseMint,
+            quoteMint: poolConfigState.quoteMint,
+            feeClaimer,
+            tokenBaseProgram,
+            tokenQuoteProgram,
+        }
+
+        return { accounts, preInstructions }
+    }
+
+    /**
      * Claim trading fee
      * @param claimTradingFeeParam - The parameters for the claim trading fee
      * @returns A claim trading fee transaction
@@ -258,95 +421,54 @@ export class PartnerService extends DynamicBondingCurveProgram {
             poolConfigState.quoteTokenFlag
         )
 
-        const partnerFeeMetrics =
-            await this.state.getPoolPartnerFeeMetrics(pool)
-
-        const partnerBaseFee = partnerFeeMetrics.partnerBaseFee
-        const partnerQuoteFee = partnerFeeMetrics.partnerQuoteFee
-
-        if (partnerBaseFee.isZero() && partnerQuoteFee.isZero()) {
-            throw new Error('No partner fees to claim')
-        }
-
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
-        let tokenBaseAccount: PublicKey
-        let tokenQuoteAccount: PublicKey
-
-        const preInstructions: TransactionInstruction[] = []
-        const postInstructions: TransactionInstruction[] = []
-
         if (isSOLQuoteMint) {
-            tokenBaseAccount = findAssociatedTokenAddress(
-                receiver ? receiver : feeClaimer,
-                poolState.baseMint,
-                tokenBaseProgram
-            )
-            tokenQuoteAccount = findAssociatedTokenAddress(
-                tempWSolAcc,
-                poolConfigState.quoteMint,
-                tokenQuoteProgram
-            )
+            // if receiver is provided, use tempWSolAcc as the fee receiver, otherwise use feeClaimer
+            const tempWSol = receiver ? tempWSolAcc : feeClaimer
+            // if receiver is provided, use receiver as the fee receiver, otherwise use feeClaimer
+            const feeReceiver = receiver ? receiver : feeClaimer
 
-            const createTokenQuoteAccountIx =
-                createAssociatedTokenAccountIdempotentInstruction(
-                    payer,
-                    tokenQuoteAccount,
-                    tempWSolAcc,
-                    poolConfigState.quoteMint
-                )
-            createTokenQuoteAccountIx &&
-                preInstructions.push(createTokenQuoteAccountIx)
-
-            const createTokenBaseAccountIx =
-                createAssociatedTokenAccountIdempotentInstruction(
-                    payer,
-                    tokenBaseAccount,
-                    receiver ? receiver : feeClaimer,
-                    poolState.baseMint
-                )
-            createTokenBaseAccountIx &&
-                preInstructions.push(createTokenBaseAccountIx)
-
-            const unwrapSolIx = unwrapSOLInstruction(
-                tempWSolAcc,
-                receiver ? receiver : feeClaimer
-            )
-            unwrapSolIx && postInstructions.push(unwrapSolIx)
-        } else {
-            const tokenAccountsResult = await this.prepareTokenAccounts(
-                receiver ? receiver : feeClaimer,
-                payer,
-                poolState.baseMint,
-                poolConfigState.quoteMint,
-                tokenBaseProgram,
-                tokenQuoteProgram
-            )
-
-            tokenBaseAccount = tokenAccountsResult.ataTokenA
-            tokenQuoteAccount = tokenAccountsResult.ataTokenB
-            preInstructions.push(...tokenAccountsResult.instructions)
-        }
-
-        return this.program.methods
-            .claimTradingFee(maxBaseAmount, maxQuoteAmount)
-            .accountsPartial({
-                poolAuthority: this.poolAuthority,
-                config: poolState.config,
-                pool,
-                tokenAAccount: tokenBaseAccount,
-                tokenBAccount: tokenQuoteAccount,
-                baseVault: poolState.baseVault,
-                quoteVault: poolState.quoteVault,
-                baseMint: poolState.baseMint,
-                quoteMint: poolConfigState.quoteMint,
+            const result = await this.claimWithQuoteMintSol({
                 feeClaimer,
+                payer,
+                feeReceiver,
+                config: poolState.config,
+                tempWSolAcc: tempWSol,
+                pool,
+                poolState,
+                poolConfigState,
                 tokenBaseProgram,
                 tokenQuoteProgram,
             })
-            .preInstructions(preInstructions)
-            .postInstructions(postInstructions)
-            .transaction()
+
+            return this.program.methods
+                .claimTradingFee(maxBaseAmount, maxQuoteAmount)
+                .accountsPartial(result.accounts)
+                .preInstructions(result.preInstructions)
+                .postInstructions(result.postInstructions)
+                .transaction()
+        } else {
+            const feeReceiver = receiver ? receiver : feeClaimer
+
+            const result = await this.claimWithQuoteMintNotSol({
+                feeClaimer,
+                payer,
+                feeReceiver,
+                config: poolState.config,
+                pool,
+                poolState,
+                poolConfigState,
+                tokenBaseProgram,
+                tokenQuoteProgram,
+            })
+
+            return this.program.methods
+                .claimTradingFee(maxBaseAmount, maxQuoteAmount)
+                .accountsPartial(result.accounts)
+                .preInstructions(result.preInstructions)
+                .transaction()
+        }
     }
 
     /**
