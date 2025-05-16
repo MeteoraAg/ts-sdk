@@ -333,15 +333,7 @@ export class StateService extends DynamicBondingCurveProgram {
             totalTradingBaseFee: BN
         }>
     > {
-        const config =
-            configAddress instanceof PublicKey
-                ? configAddress
-                : new PublicKey(configAddress)
-
-        const pools = await this.getPools()
-        const filteredPools = pools.filter((pool) =>
-            pool.account.config.equals(config)
-        )
+        const filteredPools = await this.getPoolsByConfig(configAddress);
 
         return filteredPools.map((pool) => ({
             poolAddress: pool.publicKey,
