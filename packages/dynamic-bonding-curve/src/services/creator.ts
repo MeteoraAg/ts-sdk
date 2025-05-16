@@ -8,8 +8,8 @@ import {
 } from '@solana/web3.js'
 import {
     ClaimCreatorTradingFeeParam,
-    ClaimWithQuoteMintNotSolParam,
-    ClaimWithQuoteMintSolParam,
+    ClaimCreatorTradingFeeWithQuoteMintNotSolParam,
+    ClaimCreatorTradingFeeWithQuoteMintSolParam,
     CreateVirtualPoolMetadataParam,
     CreatorWithdrawSurplusParam,
 } from '../types'
@@ -63,8 +63,13 @@ export class CreatorService extends DynamicBondingCurveProgram {
             .transaction()
     }
 
+    /**
+     * Claim trading fee with quote mint SOL
+     * @param claimWithQuoteMintSolParam - The parameters for the claim with quote mint SOL
+     * @returns A claim trading fee with quote mint SOL accounts, pre instructions and post instructions
+     */
     private async claimWithQuoteMintSol(
-        claimWithQuoteMintSolParam: ClaimWithQuoteMintSolParam
+        claimWithQuoteMintSolParam: ClaimCreatorTradingFeeWithQuoteMintSolParam
     ): Promise<{
         accounts: {
             poolAuthority: PublicKey
@@ -149,8 +154,13 @@ export class CreatorService extends DynamicBondingCurveProgram {
         return { accounts, preInstructions, postInstructions }
     }
 
+    /**
+     * Claim trading fee with quote mint not SOL
+     * @param claimWithQuoteMintNotSolParam - The parameters for the claim with quote mint not SOL
+     * @returns A claim trading fee with quote mint not SOL accounts and pre instructions
+     */
     private async claimWithQuoteMintNotSol(
-        claimWithQuoteMintNotSolParam: ClaimWithQuoteMintNotSolParam
+        claimWithQuoteMintNotSolParam: ClaimCreatorTradingFeeWithQuoteMintNotSolParam
     ): Promise<{
         accounts: {
             poolAuthority: PublicKey
@@ -246,9 +256,9 @@ export class CreatorService extends DynamicBondingCurveProgram {
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         if (isSOLQuoteMint) {
-            // check if receiver is provided, if it is, use tempWSolAcc, if not use creator
+            // if receiver is provided, use tempWSolAcc, otherwise use creator
             const tempWSol = receiver ? tempWSolAcc : creator
-            // check if receiver is provided, if it is, use receiver, if not use creator
+            // if receiver is provided, use receiver, otherwise use creator
             const feeReceiver = receiver ? receiver : creator
 
             const result = await this.claimWithQuoteMintSol({
@@ -270,7 +280,7 @@ export class CreatorService extends DynamicBondingCurveProgram {
                 .postInstructions(result.postInstructions)
                 .transaction()
         } else {
-            // check if receiver is provided, if it is, use receiver, if not use creator
+            // check if receiver is provided, use receiver, otherwise use creator
             const feeReceiver = receiver ? receiver : creator
 
             const result = await this.claimWithQuoteMintNotSol({
