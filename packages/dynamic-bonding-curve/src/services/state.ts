@@ -93,6 +93,21 @@ export class StateService extends DynamicBondingCurveProgram {
     }
 
     /**
+     * Get pool by base mint
+     * @param baseMint - The base mint address
+     * @returns A virtual pool account
+     */
+    async getPoolByBaseMint(
+        baseMint: PublicKey | string
+    ): Promise<ProgramAccount<VirtualPool> | null> {
+        const filters = baseMint
+            ? createProgramAccountFilter(baseMint, 136)
+            : []
+        const pools = await this.program.account.virtualPool.all(filters)
+        return pools.length > 0 ? pools[0] : null
+    }
+
+    /**
      * Get pool migration quote threshold
      * @param poolAddress - The address of the pool
      * @returns The migration quote threshold

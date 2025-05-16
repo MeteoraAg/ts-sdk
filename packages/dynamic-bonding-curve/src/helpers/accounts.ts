@@ -39,6 +39,18 @@ const SEED = Object.freeze({
  * Derive the DAMM V1 event authority
  * @returns The event authority
  */
+export function deriveDbcEventAuthority(): PublicKey {
+    const [eventAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from(SEED.EVENT_AUTHORITY)],
+        DYNAMIC_BONDING_CURVE_PROGRAM_ID
+    )
+    return eventAuthority
+}
+
+/**
+ * Derive the DAMM V1 event authority
+ * @returns The event authority
+ */
 export function deriveDammV1EventAuthority(): PublicKey {
     const [eventAuthority] = PublicKey.findProgramAddressSync(
         [Buffer.from(SEED.EVENT_AUTHORITY)],
