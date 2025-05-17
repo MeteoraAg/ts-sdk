@@ -49,6 +49,7 @@
     - [getPool](#getPool)
     - [getPools](#getPools)
     - [getPoolsByConfig](#getPoolsByConfig)
+    - [getPoolByBaseMint](#getPoolByBaseMint)
     - [getPoolMigrationQuoteThreshold](#getPoolMigrationQuoteThreshold)
     - [getPoolCurveProgress](#getPoolCurveProgress)
     - [getPoolMetadata](#getPoolMetadata)
@@ -68,6 +69,7 @@
     - [deriveDbcPoolAddress](#deriveDbcPoolAddress)
     - [deriveDammV1PoolAddress](#deriveDammV1PoolAddress)
     - [deriveDammV2PoolAddress](#deriveDammV2PoolAddress)
+    - [deriveDbcTokenVaultAddress](#deriveDbcTokenVaultAddress)
 
 ---
 
@@ -1919,6 +1921,34 @@ const pools = await client.state.getPoolsByConfig(configAddress)
 
 ---
 
+### getPoolByBaseMint
+
+Gets the pool by base mint.
+
+#### Function
+
+```typescript
+async getPoolByBaseMint(baseMint: PublicKey | string): Promise<ProgramAccount<VirtualPool> | null>
+```
+
+#### Parameters
+
+```typescript
+baseMint: PublicKey | string // The address of the base mint
+```
+
+#### Returns
+
+A `VirtualPool` object containing the pool's details, or null if not found.
+
+#### Example
+
+```typescript
+const pool = await client.state.getPoolByBaseMint(baseMint)
+```
+
+---
+
 ### getPoolMigrationQuoteThreshold
 
 Gets the migration quote threshold for a specific pool.
@@ -2425,5 +2455,37 @@ const dammV2PoolAddress = deriveDammV2PoolAddress(
     dammConfig: new PublicKey('7F6dnUcRuyM2TwR8myT1dYypFXpPSxqwKNSFNkxyNESd'),
     tokenAMint: new PublicKey('tokenA1234567890abcdefghijklmnopqrstuvwxyz'),
     tokenBMint: new PublicKey('tokenB1234567890abcdefghijklmnopqrstuvwxyz')
+)
+```
+
+---
+
+### deriveDbcTokenVaultAddress
+
+Derives the address of a DBC token vault.
+
+#### Function
+
+```typescript
+function deriveDbcTokenVaultAddress(pool: PublicKey, mint: PublicKey): PublicKey
+```
+
+#### Parameters
+
+```typescript
+pool: PublicKey // The pool address
+mint: PublicKey // The mint address
+```
+
+#### Returns
+
+The address of the DBC token vault.
+
+#### Example
+
+```typescript
+const dbcTokenVaultAddress = deriveDbcTokenVaultAddress(
+    pool: new PublicKey('pool1234567890abcdefghijklmnopqrstuvwxyz'),
+    mint: new PublicKey('token1234567890abcdefghijklmnopqrstuvwxyz')
 )
 ```
