@@ -216,6 +216,11 @@ export function buildCurveByMarketCap(
     })
 }
 
+/**
+ * Build a custom curve graph. Control the shape of the curve by liquidity weights.
+ * @param buildCurveGraphParam - The parameters for the custom constant product curve by graph
+ * @returns The build custom constant product curve by graph
+ */
 export function buildCurveGraph(
     buildCurveGraphParam: BuildCurveGraphParam
 ): ConfigParameters {

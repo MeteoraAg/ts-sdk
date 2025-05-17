@@ -71,6 +71,7 @@ export const getOrCreateATAInstruction = async (
 /**
  * Create an unwrap SOL instruction
  * @param owner - The owner of the SOL
+ * @param receiver - The receiver of the SOL
  * @param allowOwnerOffCurve - Whether to allow the owner to be off curve
  * @returns The unwrap SOL instruction
  */

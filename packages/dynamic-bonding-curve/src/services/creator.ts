@@ -64,7 +64,7 @@ export class CreatorService extends DynamicBondingCurveProgram {
     }
 
     /**
-     * Claim trading fee with quote mint SOL
+     * Private method to claim trading fee with quote mint SOL
      * @param claimWithQuoteMintSolParam - The parameters for the claim with quote mint SOL
      * @returns A claim trading fee with quote mint SOL accounts, pre instructions and post instructions
      */
@@ -155,7 +155,7 @@ export class CreatorService extends DynamicBondingCurveProgram {
     }
 
     /**
-     * Claim trading fee with quote mint not SOL
+     * Private method to claim trading fee with quote mint not SOL
      * @param claimWithQuoteMintNotSolParam - The parameters for the claim with quote mint not SOL
      * @returns A claim trading fee with quote mint not SOL accounts and pre instructions
      */
