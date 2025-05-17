@@ -1,0 +1,48 @@
+import { BN } from 'bn.js'
+import {
+    BASIS_POINT_MAX,
+    FEE_DENOMINATOR,
+    FeeSchedulerMode,
+    calculateFeeScheduler,
+} from '../src'
+import { convertBNToDecimal } from './utils/common'
+
+describe('calculateFeeScheduler tests', () => {
+    test('linear fee scheduler - should calculate parameters correctly', () => {
+        const startingFeeBps = 5000 // 50%
+        const endingFeeBps = 1000 // 10%
+        const numberOfPeriod = 144
+        const feeSchedulerMode = FeeSchedulerMode.Linear
+
+        const result = calculateFeeScheduler(
+            startingFeeBps,
+            endingFeeBps,
+            feeSchedulerMode,
+            numberOfPeriod
+        )
+
+        console.log('result', convertBNToDecimal(result))
+
+        // linear mode: cliffFeeNumerator - (numberOfPeriod * reductionFactor)
+        expect(result.reductionFactor.toNumber()).toEqual(2777777)
+    })
+
+    test('exponential fee scheduler - should calculate parameters correctly', () => {
+        const startingFeeBps = 5000 // 50%
+        const endingFeeBps = 1000 // 10%
+        const numberOfPeriod = 37.5
+        const feeSchedulerMode = FeeSchedulerMode.Exponential
+
+        const result = calculateFeeScheduler(
+            startingFeeBps,
+            endingFeeBps,
+            feeSchedulerMode,
+            numberOfPeriod
+        )
+
+        console.log('result', convertBNToDecimal(result))
+
+        // exponential mode: cliffFeeNumerator * (1 - reductionFactor/10_000)^numberOfPeriod
+        expect(result.reductionFactor.toNumber()).toEqual(420)
+    })
+})
