@@ -1,7 +1,10 @@
 import {
+    ActivationType,
     BaseFee,
+    BaseFeeConfig,
     DynamicFeeParameters,
     FeeSchedulerMode,
+    FeeSchedulerParameters,
     MigrationOption,
     Rounding,
     type LiquidityDistributionParameters,
@@ -663,5 +666,61 @@ export function getDynamicFeeParams(
         reductionFactor: DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
         maxVolatilityAccumulator: maxVolatilityAccumulator.toNumber(),
         variableFeeControl: variableFeeControl.toNumber(),
+    }
+}
+
+/**
+ * Calculate the reduction factor for the fee scheduler based on starting and ending Bps
+ * @param startingFeeBps - The starting fee in bps
+ * @param endingFeeBps - The ending fee in bps
+ * @param feeSchedulerMode - Linear or Exponential mode
+ * @param numberOfPeriod - Total number of periods (depends on activation type, if slot - 400ms, if timestamp - 100ms)
+ * @returns The Fee Scheduler Params
+ */
+export function calculateFeeScheduler(
+    startingFeeBps: number,
+    endingFeeBps: number,
+    feeSchedulerMode: FeeSchedulerMode,
+    numberOfPeriod: number
+): {
+    cliffFeeNumerator: BN
+    numberOfPeriod: number
+    periodFrequency: BN
+    reductionFactor: BN
+    feeSchedulerMode: FeeSchedulerMode
+} {
+    // convert fee from bps to fee numerator
+    const cliffFeeNumerator = bpsToFeeNumerator(startingFeeBps)
+    const endingFeeNumerator = bpsToFeeNumerator(endingFeeBps)
+
+    if (feeSchedulerMode === FeeSchedulerMode.Linear) {
+        // for linear mode: fee = cliff_fee_numerator - (period * reduction_factor)
+        const totalReduction = cliffFeeNumerator.sub(endingFeeNumerator)
+        const reductionFactor = totalReduction.div(new BN(numberOfPeriod))
+
+        return {
+            cliffFeeNumerator,
+            numberOfPeriod,
+            periodFrequency: new BN(1),
+            reductionFactor,
+            feeSchedulerMode: FeeSchedulerMode.Linear,
+        }
+    } else {
+        // for exponential mode: fee = cliff_fee_numerator * (1 - reduction_factor/10_000)^period
+        // calculate the decay rate needed to reach ending fee after numberOfPeriod periods
+        const decayRate = Math.pow(
+            endingFeeNumerator.toNumber() / cliffFeeNumerator.toNumber(),
+            1 / numberOfPeriod
+        )
+        // convert decay rate to reduction factor (1 - decayRate) * 10000
+        const reductionFactor = new BN(Math.floor((1 - decayRate) * 10000))
+
+        return {
+            cliffFeeNumerator,
+            numberOfPeriod,
+            periodFrequency: new BN(1),
+            reductionFactor,
+            feeSchedulerMode: FeeSchedulerMode.Exponential,
+        }
     }
 }
