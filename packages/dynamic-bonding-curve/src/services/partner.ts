@@ -9,14 +9,10 @@ import {
 import { DynamicBondingCurveProgram } from './program'
 import {
     type ClaimTradingFeeParam,
-    type ConfigParameters,
     type CreateConfigParam,
     type CreatePartnerMetadataParam,
     type CreatePartnerMetadataParameters,
     type PartnerWithdrawSurplusParam,
-    BuildCurveAndCreateConfigByMarketCapParam,
-    BuildCurveAndCreateConfigParam,
-    BuildCurveGraphAndCreateConfigParam,
     ClaimPartnerTradingFeeWithQuoteMintNotSolParam,
     ClaimPartnerTradingFeeWithQuoteMintSolParam,
 } from '../types'
@@ -24,11 +20,8 @@ import {
     derivePartnerMetadata,
     unwrapSOLInstruction,
     validateConfigParameters,
-    buildCurve,
-    buildCurveByMarketCap,
     getTokenProgram,
     getOrCreateATAInstruction,
-    buildCurveGraph,
     isNativeSol,
     findAssociatedTokenAddress,
 } from '../helpers'
@@ -69,123 +62,6 @@ export class PartnerService extends DynamicBondingCurveProgram {
         return this.program.methods
             .createConfig(configParam)
             .accountsPartial({
-                config,
-                feeClaimer,
-                leftoverReceiver,
-                quoteMint,
-                payer,
-            })
-            .transaction()
-    }
-
-    /**
-     * Build curve and create a new custom constant product config
-     * @param buildCurveAndCreateConfigParam - The parameters for the custom constant product config
-     * @returns A new custom constant product config
-     */
-    async buildCurveAndCreateConfig(
-        buildCurveAndCreateConfigParam: BuildCurveAndCreateConfigParam
-    ): Promise<Transaction> {
-        const {
-            buildCurveParam,
-            feeClaimer,
-            leftoverReceiver,
-            payer,
-            quoteMint,
-            config,
-        } = buildCurveAndCreateConfigParam
-
-        const curveConfig: ConfigParameters = buildCurve({
-            ...buildCurveParam,
-        })
-
-        // error checks
-        validateConfigParameters({
-            ...curveConfig,
-            leftoverReceiver,
-        })
-
-        return this.program.methods
-            .createConfig(curveConfig)
-            .accounts({
-                config,
-                feeClaimer,
-                leftoverReceiver,
-                quoteMint,
-                payer,
-            })
-            .transaction()
-    }
-
-    /**
-     * Build curve by market cap and create a new custom constant product config
-     * @param buildCurveAndCreateConfigByMarketCapParam - The parameters for the custom constant product config
-     * @returns A new custom constant product config
-     */
-    async buildCurveAndCreateConfigByMarketCap(
-        buildCurveAndCreateConfigByMarketCapParam: BuildCurveAndCreateConfigByMarketCapParam
-    ): Promise<Transaction> {
-        const {
-            buildCurveByMarketCapParam,
-            feeClaimer,
-            leftoverReceiver,
-            payer,
-            quoteMint,
-            config,
-        } = buildCurveAndCreateConfigByMarketCapParam
-
-        const curveConfig: ConfigParameters = buildCurveByMarketCap({
-            ...buildCurveByMarketCapParam,
-        })
-
-        // error checks
-        validateConfigParameters({
-            ...curveConfig,
-            leftoverReceiver,
-        })
-
-        return this.program.methods
-            .createConfig(curveConfig)
-            .accounts({
-                config,
-                feeClaimer,
-                leftoverReceiver,
-                quoteMint,
-                payer,
-            })
-            .transaction()
-    }
-
-    /**
-     * Build a custom graph curve and create a new config
-     * @param buildCurveGraphAndCreateConfigParam - The parameters for the custom constant product config
-     * @returns A new custom constant product config
-     */
-    async buildCurveGraphAndCreateConfig(
-        buildCurveGraphAndCreateConfigParam: BuildCurveGraphAndCreateConfigParam
-    ): Promise<Transaction> {
-        const {
-            buildCurveGraphParam,
-            feeClaimer,
-            leftoverReceiver,
-            payer,
-            quoteMint,
-            config,
-        } = buildCurveGraphAndCreateConfigParam
-
-        const curveConfig: ConfigParameters = buildCurveGraph({
-            ...buildCurveGraphParam,
-        })
-
-        // error checks
-        validateConfigParameters({
-            ...curveConfig,
-            leftoverReceiver,
-        })
-
-        return this.program.methods
-            .createConfig(curveConfig)
-            .accounts({
                 config,
                 feeClaimer,
                 leftoverReceiver,
@@ -424,8 +300,11 @@ export class PartnerService extends DynamicBondingCurveProgram {
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         if (isSOLQuoteMint) {
-            // if receiver is provided, use tempWSolAcc as the fee receiver, otherwise use feeClaimer
-            const tempWSol = receiver ? tempWSolAcc : feeClaimer
+            // if receiver is present and not equal to feeClaimer, use tempWSolAcc, otherwise use feeClaimer
+            const tempWSol =
+                receiver && !receiver.equals(feeClaimer)
+                    ? tempWSolAcc
+                    : feeClaimer
             // if receiver is provided, use receiver as the fee receiver, otherwise use feeClaimer
             const feeReceiver = receiver ? receiver : feeClaimer
 
