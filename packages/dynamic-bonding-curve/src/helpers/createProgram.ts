@@ -10,7 +10,7 @@ import { DammV2 } from '../idl/damm-v2/idl'
 import DammV2IDL from '../idl/damm-v2/idl.json'
 
 /**
- * Create a program instance
+ * Create a DBC program instance
  * @param connection - The connection to the network
  * @returns The program instance
  */
@@ -63,6 +63,12 @@ export function createDammV1Program(
     return program
 }
 
+/**
+ * Create a DAMM V2 program instance
+ * @param connection - The connection to the network
+ * @param commitment - The commitment level
+ * @returns The DAMM V2 program instance
+ */
 export function createDammV2Program(
     connection: Connection,
     commitment: Commitment = 'confirmed'

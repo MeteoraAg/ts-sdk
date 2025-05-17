@@ -38,6 +38,11 @@ export class PoolService extends DynamicBondingCurveProgram {
         this.state = new StateService(connection, commitment)
     }
 
+    /**
+     * Private method to initialize a pool with SPL token
+     * @param initializeSplPoolParams - The parameters for the initialize SPL pool
+     * @returns A transaction that initializes the pool with SPL token
+     */
     private async initializeSplPool(
         initializeSplPoolParams: InitializePoolBaseParam
     ): Promise<Transaction> {
@@ -79,6 +84,11 @@ export class PoolService extends DynamicBondingCurveProgram {
             .transaction()
     }
 
+    /**
+     * Private method to initialize a pool with Token2022
+     * @param initializeToken2022PoolParams - The parameters for the initialize Token2022 pool
+     * @returns A transaction that initializes the pool with Token2022
+     */
     private async initializeToken2022Pool(
         initializeToken2022PoolParams: InitializePoolBaseParam
     ): Promise<Transaction> {
@@ -118,7 +128,7 @@ export class PoolService extends DynamicBondingCurveProgram {
     }
 
     /**
-     * Prepare swap parameters
+     * Private method to prepare swap parameters
      * @param swapBaseForQuote - Whether to swap base for quote
      * @param virtualPoolState - The virtual pool state
      * @param poolConfigState - The pool config state

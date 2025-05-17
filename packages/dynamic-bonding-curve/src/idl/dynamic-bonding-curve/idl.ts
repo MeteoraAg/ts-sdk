@@ -1,9 +1,3 @@
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/dynamic_bonding_curve.json`.
- */
 export type DynamicBondingCurve = {
     address: 'dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN'
     metadata: {
@@ -4456,7 +4450,11 @@ export type DynamicBondingCurve = {
                     },
                     {
                         name: 'postMigrationTokenSupply'
-                        docs: ['post migration token supply']
+                        docs: [
+                            'post migration token supply',
+                            'becase DBC allow user to swap over the migration quote threshold, so in extreme case user may swap more than allowed buffer on curve',
+                            'that result the total supply in post migration may be increased a bit (between pre_migration_token_supply and post_migration_token_supply)',
+                        ]
                         type: 'u64'
                     },
                 ]
