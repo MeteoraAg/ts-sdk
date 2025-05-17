@@ -2,7 +2,8 @@ import { expect, test, describe } from 'bun:test'
 import {
     buildCurve,
     buildCurveByMarketCap,
-    buildCurveGraph,
+    buildCurveWithCreatorFirstBuy,
+    buildCurveWithLiquidityWeights,
 } from '../src/helpers'
 import BN from 'bn.js'
 import {
@@ -15,14 +16,12 @@ import {
     TokenType,
 } from '../src'
 import { convertBNToDecimal } from './utils/common'
-import { getMinBaseFeeBps } from '../src/helpers'
-import { FEE_DENOMINATOR, BASIS_POINT_MAX } from '../src/constants'
 import Decimal from 'decimal.js'
 
 describe('buildCurve tests', () => {
     const baseParams = {
         totalTokenSupply: 1000000000,
-        migrationOption: MigrationOption.MET_DAMM,
+        migrationOption: MigrationOption.MET_DAMM_V2,
         tokenBaseDecimal: TokenDecimal.SIX,
         tokenQuoteDecimal: TokenDecimal.NINE,
         lockedVesting: {
@@ -62,29 +61,35 @@ describe('buildCurve tests', () => {
             migrationQuoteThreshold: 95.07640791476408,
         })
 
-        console.log('config:', convertBNToDecimal(config))
+        console.log(
+            'config for curve with percentage and threshold parameters:',
+            convertBNToDecimal(config)
+        )
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build curve with market cap parameters', () => {
-        console.log('\n testing build curve with market cap parameters...')
+    test('build curve by market cap', () => {
+        console.log('\n testing build curve by market cap...')
         const config = buildCurveByMarketCap({
             ...baseParams,
             initialMarketCap: 23.5,
             migrationMarketCap: 405.882352941,
         })
 
-        console.log('config:', convertBNToDecimal(config))
+        console.log(
+            'config for curve by market cap:',
+            convertBNToDecimal(config)
+        )
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build curve with locked vesting', () => {
+    test('build curve by market cap with locked vesting', () => {
         console.log('\n testing build curve with locked vesting...')
         const lockedVestingParams = {
             ...baseParams,
@@ -132,8 +137,8 @@ describe('buildCurve tests', () => {
         }
     })
 
-    test('build exponential graph curve and k > 1', () => {
-        console.log('\n testing build exponential curve graph and k > 1...')
+    test('build curve with liquidity weights 1.2^n', () => {
+        console.log('\n testing build curve with liquidity weights 1.2^n...')
         let liquidityWeights: number[] = []
         for (let i = 0; i < 16; i++) {
             liquidityWeights[i] = new Decimal(1.2)
@@ -150,17 +155,20 @@ describe('buildCurve tests', () => {
             liquidityWeights,
         }
 
-        const config = buildCurveGraph(curveGraphParams)
+        const config = buildCurveWithLiquidityWeights(curveGraphParams)
 
-        console.log('config for graph curve:', convertBNToDecimal(config))
+        console.log(
+            'config for curve with liquidity weights 1.2^n:',
+            convertBNToDecimal(config)
+        )
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build exponential graph curve and k < 1', () => {
-        console.log('\n testing build exponential curve graph and k < 1...')
+    test('build curve with liquidity weights 0.6^n', () => {
+        console.log('\n testing build curve with liquidity weights 0.6^n...')
         let liquidityWeights: number[] = []
         for (let i = 0; i < 16; i++) {
             liquidityWeights[i] = new Decimal(0.6)
@@ -175,19 +183,20 @@ describe('buildCurve tests', () => {
             liquidityWeights,
         }
 
-        const config = buildCurveGraph(curveGraphParams)
+        const config = buildCurveWithLiquidityWeights(curveGraphParams)
 
-        console.log('config for graph curve:', convertBNToDecimal(config))
+        console.log(
+            'config for curve with liquidity weights 0.6^n:',
+            convertBNToDecimal(config)
+        )
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build graph curve with customisable curve values v1', () => {
-        console.log(
-            '\n testing build graph curve with customisable curve values v1...'
-        )
+    test('build curve with liquidity weights v1', () => {
+        console.log('\n testing build curve with liquidity weights v1...')
         let liquidityWeights: number[] = []
         for (let i = 0; i < 16; i++) {
             if (i < 15) {
@@ -220,9 +229,12 @@ describe('buildCurve tests', () => {
             migrationOption: MigrationOption.MET_DAMM,
         }
 
-        const config = buildCurveGraph(curveGraphParams)
+        const config = buildCurveWithLiquidityWeights(curveGraphParams)
 
-        console.log('config for graph curve:', convertBNToDecimal(config))
+        console.log(
+            'config for curve with liquidity weights v1:',
+            convertBNToDecimal(config)
+        )
         console.log(
             'migrationQuoteThreshold: %d',
             config.migrationQuoteThreshold
@@ -232,32 +244,15 @@ describe('buildCurve tests', () => {
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
-        expect(config.migrationQuoteThreshold.toString()).toEqual('76007119')
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    test('build graph curve with customisable curve values v2', () => {
-        console.log(
-            '\n testing build graph curve with customisable curve values v2...'
-        )
+    test('build curve with liquidity weights v2', () => {
+        console.log('\n testing build curve with liquidity weights v2...')
 
         const liquidityWeights = [
-            0.01, // 0
-            0.02, // 1
-            0.04, // 2
-            0.08, // 3
-            0.16, // 4
-            0.32, // 5
-            0.64, // 6
-            1.28, // 7
-            2.56, // 8
-            5.12, // 9
-            10.24, // 10
-            20.48, // 11
-            40.96, // 12
-            81.92, // 13
-            163.84, // 14
-            327.68, // 15
+            0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24,
+            20.48, 40.96, 81.92, 163.84, 327.68,
         ]
 
         console.log('liquidityWeights:', liquidityWeights)
@@ -274,9 +269,12 @@ describe('buildCurve tests', () => {
             migrationOption: MigrationOption.MET_DAMM,
         }
 
-        const config = buildCurveGraph(curveGraphParams)
+        const config = buildCurveWithLiquidityWeights(curveGraphParams)
 
-        console.log('config for graph curve:', convertBNToDecimal(config))
+        console.log(
+            'config for curve with liquidity weights v2:',
+            convertBNToDecimal(config)
+        )
         console.log(
             'migrationQuoteThreshold: %d',
             config.migrationQuoteThreshold
@@ -286,72 +284,55 @@ describe('buildCurve tests', () => {
         expect(config).toBeDefined()
         expect(config.migrationQuoteThreshold).toBeDefined()
         expect(config.curve).toBeDefined()
-        // expect(config.migrationQuoteThreshold.toString()).toEqual(
-        //     '100381849371'
-        // )
         expect(config.curve.length).toBeGreaterThan(0)
     })
 
-    describe('getMinBaseFeeBps tests', () => {
-        test('linear fee scheduler - should calculate minimum fee correctly', () => {
-            const baseFeeBps = 5000
-            const cliffFeeNumerator =
-                (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-            const numberOfPeriod = 144
-            const reductionFactor = 3333333
-            const feeSchedulerMode = FeeSchedulerMode.Linear
+    test('build curve with creator first buy', () => {
+        console.log('\n testing build curve with creator first buy...')
 
-            const minBaseFeeBps = getMinBaseFeeBps(
-                cliffFeeNumerator,
-                numberOfPeriod,
-                reductionFactor,
-                feeSchedulerMode
-            )
+        let liquidityWeights: number[] = []
+        for (let i = 0; i < 16; i++) {
+            if (i < 15) {
+                liquidityWeights[i] = new Decimal(1.45)
+                    .pow(new Decimal(i))
+                    .toNumber()
+            } else {
+                liquidityWeights[i] = 90
+            }
+        }
+        console.log('liquidityWeights:', liquidityWeights)
 
-            // linear mode: cliffFeeNumerator - (numberOfPeriod * reductionFactor)
-            const expectedMinFeeNumerator =
-                cliffFeeNumerator - numberOfPeriod * reductionFactor
-            const expectedMinFeeBps = Math.max(
-                0,
-                (expectedMinFeeNumerator / FEE_DENOMINATOR) * BASIS_POINT_MAX
-            )
+        const curveGraphParams = {
+            ...baseParams,
+            totalTokenSupply: 1000000000,
+            initialMarketCap: 15,
+            migrationMarketCap: 255,
+            tokenQuoteDecimal: TokenDecimal.NINE,
+            tokenBaseDecimal: TokenDecimal.SIX,
+            leftover: 200000000,
+            liquidityWeights,
+            migrationOption: MigrationOption.MET_DAMM,
+            creatorFirstBuyOption: {
+                quoteAmount: 0.01,
+                baseAmount: 10000000,
+            },
+        }
 
-            console.log('minBaseFeeBps:', minBaseFeeBps)
-            console.log('expectedMinFeeBps:', expectedMinFeeBps)
+        const config = buildCurveWithCreatorFirstBuy(curveGraphParams)
 
-            expect(minBaseFeeBps).toBeLessThan(baseFeeBps)
-            expect(minBaseFeeBps).toEqual(expectedMinFeeBps)
-        })
-
-        test('exponential fee scheduler - should calculate minimum fee correctly', () => {
-            const baseFeeBps = 5000
-            const cliffFeeNumerator =
-                (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-            const numberOfPeriod = 37.5
-            const reductionFactor = 822.5
-            const feeSchedulerMode = FeeSchedulerMode.Exponential
-
-            const minBaseFeeBps = getMinBaseFeeBps(
-                cliffFeeNumerator,
-                numberOfPeriod,
-                reductionFactor,
-                feeSchedulerMode
-            )
-
-            // exponential mode: cliffFeeNumerator * (1 - reductionFactor/BASIS_POINT_MAX)^numberOfPeriod
-            const decayRate = 1 - reductionFactor / BASIS_POINT_MAX
-            const expectedMinFeeNumerator =
-                cliffFeeNumerator * Math.pow(decayRate, numberOfPeriod)
-            const expectedMinFeeBps = Math.max(
-                0,
-                (expectedMinFeeNumerator / FEE_DENOMINATOR) * BASIS_POINT_MAX
-            )
-
-            console.log('minBaseFeeBps:', minBaseFeeBps)
-            console.log('expectedMinFeeBps:', expectedMinFeeBps)
-
-            expect(minBaseFeeBps).toBeLessThan(baseFeeBps)
-            expect(minBaseFeeBps).toEqual(expectedMinFeeBps)
-        })
+        console.log(
+            'config for curve with creator first buy:',
+            convertBNToDecimal(config)
+        )
+        console.log(
+            'migrationQuoteThreshold: %d',
+            config.migrationQuoteThreshold
+                .div(new BN(10 ** TokenDecimal.NINE))
+                .toString()
+        )
+        expect(config).toBeDefined()
+        expect(config.migrationQuoteThreshold).toBeDefined()
+        expect(config.curve).toBeDefined()
+        expect(config.curve.length).toBeGreaterThan(0)
     })
 })

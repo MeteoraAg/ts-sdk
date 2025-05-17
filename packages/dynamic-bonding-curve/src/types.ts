@@ -208,6 +208,12 @@ export enum Rounding {
 // TYPES //
 ///////////
 
+export type CreateConfigParam = Omit<
+    CreateConfigAccounts,
+    'program' | 'eventAuthority' | 'systemProgram'
+> &
+    ConfigParameters
+
 export type BaseFee = {
     cliffFeeNumerator: BN
     numberOfPeriod: number
@@ -215,12 +221,6 @@ export type BaseFee = {
     reductionFactor: BN
     feeSchedulerMode: FeeSchedulerMode
 }
-
-export type CreateConfigParam = Omit<
-    CreateConfigAccounts,
-    'program' | 'eventAuthority' | 'systemProgram'
-> &
-    ConfigParameters
 
 export type CreateDammV1MigrationMetadataParam = {
     payer: PublicKey
@@ -269,37 +269,20 @@ export type BuildCurveByMarketCapParam = BuildCurveBaseParam & {
     migrationMarketCap: number
 }
 
-export type BuildCurveGraphParam = BuildCurveBaseParam & {
+export type BuildCurveWithLiquidityWeightsParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
     liquidityWeights: number[]
 }
 
-export type BuildCurveAndCreateConfigParam = {
-    buildCurveParam: BuildCurveParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
-}
-
-export type BuildCurveAndCreateConfigByMarketCapParam = {
-    buildCurveByMarketCapParam: BuildCurveByMarketCapParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
-}
-
-export type BuildCurveGraphAndCreateConfigParam = {
-    buildCurveGraphParam: BuildCurveGraphParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
+export type BuildCurveWithCreatorFirstBuyParam = BuildCurveBaseParam & {
+    initialMarketCap: number
+    migrationMarketCap: number
+    liquidityWeights: number[]
+    creatorFirstBuyOption: {
+        quoteAmount: number
+        baseAmount: number
+    }
 }
 
 export type MigrateToDammV1Param = {

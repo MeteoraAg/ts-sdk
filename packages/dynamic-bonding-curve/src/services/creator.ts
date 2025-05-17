@@ -256,8 +256,9 @@ export class CreatorService extends DynamicBondingCurveProgram {
         const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
 
         if (isSOLQuoteMint) {
-            // if receiver is provided, use tempWSolAcc, otherwise use creator
-            const tempWSol = receiver ? tempWSolAcc : creator
+            // if receiver is present and not equal to creator, use tempWSolAcc, otherwise use creator
+            const tempWSol =
+                receiver && !receiver.equals(creator) ? tempWSolAcc : creator
             // if receiver is provided, use receiver, otherwise use creator
             const feeReceiver = receiver ? receiver : creator
 
