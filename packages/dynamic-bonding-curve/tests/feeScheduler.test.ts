@@ -1,10 +1,4 @@
-import { BN } from 'bn.js'
-import {
-    BASIS_POINT_MAX,
-    FEE_DENOMINATOR,
-    FeeSchedulerMode,
-    calculateFeeScheduler,
-} from '../src'
+import { FeeSchedulerMode, calculateFeeScheduler } from '../src'
 import { convertBNToDecimal } from './utils/common'
 
 describe('calculateFeeScheduler tests', () => {
