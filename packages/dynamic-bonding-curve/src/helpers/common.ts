@@ -7,6 +7,7 @@ import {
     FeeSchedulerParameters,
     MigrationOption,
     Rounding,
+    TokenDecimal,
     type LiquidityDistributionParameters,
     type LockedVestingParameters,
 } from '../types'
@@ -722,5 +723,43 @@ export function calculateFeeScheduler(
             reductionFactor,
             feeSchedulerMode: FeeSchedulerMode.Exponential,
         }
+    }
+}
+
+/**
+ * Calculate the locked vesting parameters
+ * @param totalVestingAmount - The total vesting amount
+ * @param numberOfPeriod - The number of periods
+ * @param amountPerPeriod - The amount per period
+ * @param cliffDurationFromMigrationTime - The cliff duration from migration time
+ * @param frequency - The frequency
+ * @param tokenBaseDecimal - The decimal of the base token
+ * @returns The locked vesting parameters
+ */
+export function calculateLockedVesting(
+    totalVestingAmount: number,
+    numberOfPeriod: number,
+    amountPerPeriod: number,
+    cliffDurationFromMigrationTime: number = 0,
+    frequency: number = 1,
+    tokenBaseDecimal: TokenDecimal
+): {
+    amountPerPeriod: BN
+    cliffDurationFromMigrationTime: BN
+    frequency: BN
+    numberOfPeriod: BN
+    cliffUnlockAmount: BN
+} {
+    // total_locked_vesting_amount = cliff_unlock_amount + (amount_per_period * number_of_period)
+    // calculate cliff unlock amount based on total vesting amount and periodic amounts
+    const totalPeriodicAmount = amountPerPeriod * numberOfPeriod
+    const cliffUnlockAmount = totalVestingAmount - totalPeriodicAmount
+
+    return {
+        amountPerPeriod: new BN(amountPerPeriod * 10 ** tokenBaseDecimal),
+        cliffDurationFromMigrationTime: new BN(cliffDurationFromMigrationTime),
+        frequency: new BN(frequency),
+        numberOfPeriod: new BN(numberOfPeriod),
+        cliffUnlockAmount: new BN(cliffUnlockAmount * 10 ** tokenBaseDecimal),
     }
 }

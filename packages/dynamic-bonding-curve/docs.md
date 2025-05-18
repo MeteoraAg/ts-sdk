@@ -1207,7 +1207,7 @@ const transaction = await client.pool.swap({
 - The `minimumAmountOut` parameter protects against slippage. Set it to a value slightly lower than the expected output.
 - The `referralTokenAccount` parameter is an optional token account. If provided, the referral fee will be applied to the transaction.
 - If the transaction fails with "insufficient balance", check that you have enough tokens plus fees for the transaction.
-- The pool address can be derived using `client.getDbcPoolAddress(quoteMint, baseMint, config)`.
+- The pool address can be derived using `client.state.getDbcPoolAddress(quoteMint, baseMint, config)`.
 
 ---
 
@@ -1242,8 +1242,10 @@ The quote result of the swap.
 #### Example
 
 ```typescript
-const virtualPoolState = await client.getPool(poolAddress)
-const poolConfigState = await client.getPoolConfig(virtualPoolState.config)
+const virtualPoolState = await client.state.getPool(poolAddress)
+const poolConfigState = await client.state.getPoolConfig(
+    virtualPoolState.config
+)
 
 const quote = await client.pool.swapQuote({
     virtualPool: virtualPoolState, // The virtual pool state
