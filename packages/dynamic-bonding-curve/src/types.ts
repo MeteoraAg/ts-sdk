@@ -1,10 +1,4 @@
-import type {
-    Accounts,
-    BN,
-    IdlAccounts,
-    IdlTypes,
-    Program,
-} from '@coral-xyz/anchor'
+import type { Accounts, BN, IdlAccounts, IdlTypes } from '@coral-xyz/anchor'
 import type { DynamicBondingCurve } from './idl/dynamic-bonding-curve/idl'
 import type { Keypair, PublicKey, Transaction } from '@solana/web3.js'
 
