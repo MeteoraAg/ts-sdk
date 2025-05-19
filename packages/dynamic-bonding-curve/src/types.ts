@@ -274,9 +274,15 @@ export type BuildCurveParam = BuildCurveBaseParam & {
     migrationQuoteThreshold: number
 }
 
-export type BuildCurveByMarketCapParam = BuildCurveBaseParam & {
+export type BuildCurveWithMarketCapParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
+}
+
+export type BuildCurveWithTwoSegmentsParam = BuildCurveBaseParam & {
+    initialMarketCap: number
+    migrationMarketCap: number
+    percentageSupplyOnMigration: number
 }
 
 export type BuildCurveWithLiquidityWeightsParam = BuildCurveBaseParam & {

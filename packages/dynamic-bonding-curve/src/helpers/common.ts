@@ -763,3 +763,86 @@ export function calculateLockedVesting(
         cliffUnlockAmount: new BN(cliffUnlockAmount * 10 ** tokenBaseDecimal),
     }
 }
+
+/**
+ * Get the two curve
+ * @param migrationSqrPrice - The migration sqrt price
+ * @param initialSqrtPrice - The initial sqrt price
+ * @param swapAmount - The swap amount
+ * @param migrationQuoteThreshold - The migration quote threshold
+ * @returns The two curve
+ */
+export const getTwoCurve = (
+    migrationSqrtPrice: BN,
+    initialSqrtPrice: BN,
+    swapAmount: BN,
+    migrationQuoteThreshold: BN
+) => {
+    let midSqrtPriceDecimal = new Decimal(migrationSqrtPrice.toString())
+        .mul(new Decimal(initialSqrtPrice.toString()))
+        .sqrt()
+    let midSqrtPrice = new BN(midSqrtPriceDecimal.floor().toFixed())
+
+    let p0 = new Decimal(initialSqrtPrice.toString())
+    let p1 = new Decimal(midSqrtPrice.toString())
+    let p2 = new Decimal(migrationSqrtPrice.toString())
+
+    let a1 = new Decimal(1).div(p0).sub(new Decimal(1).div(p1))
+    let b1 = new Decimal(1).div(p1).sub(new Decimal(1).div(p2))
+    let c1 = new Decimal(swapAmount.toString())
+
+    let a2 = p1.sub(p0)
+    let b2 = p2.sub(p1)
+    let c2 = new Decimal(migrationQuoteThreshold.toString()).mul(
+        Decimal.pow(2, 128)
+    )
+
+    // solve equation to find l0 and l1
+    let l0 = c1
+        .mul(b2)
+        .sub(c2.mul(b1))
+        .div(a1.mul(b2).sub(a2.mul(b1)))
+    let l1 = c1
+        .mul(a2)
+        .sub(c2.mul(a1))
+        .div(b1.mul(a2).sub(b2.mul(a1)))
+    return {
+        sqrtStartPrice: initialSqrtPrice,
+        curve: [
+            {
+                sqrtPrice: midSqrtPrice,
+                liquidity: new BN(l0.floor().toFixed()),
+            },
+            {
+                sqrtPrice: migrationSqrtPrice,
+                liquidity: new BN(l1.floor().toFixed()),
+            },
+        ],
+    }
+}
+
+/**
+ * Calculate the initial price from the sqrt start price
+ * @param sqrtStartPrice - The sqrt start price
+ * @param tokenBaseDecimal - The base token decimal
+ * @param tokenQuoteDecimal - The quote token decimal
+ * @returns The initial price
+ */
+export function calculateInitialPriceFromSqrtStartPrice(
+    sqrtStartPrice: BN,
+    tokenBaseDecimal: TokenDecimal,
+    tokenQuoteDecimal: TokenDecimal
+): Decimal {
+    // lamport price = sqrtStartPrice * sqrtStartPrice / 2^128
+    const sqrtStartPriceDecimal = new Decimal(sqrtStartPrice.toString())
+    const lamportPrice = sqrtStartPriceDecimal
+        .mul(sqrtStartPriceDecimal)
+        .div(new Decimal(2).pow(128))
+
+    // token price = lamport price * 10^(base_decimal - quote_decimal)
+    const tokenPrice = lamportPrice.mul(
+        new Decimal(10).pow(tokenBaseDecimal - tokenQuoteDecimal)
+    )
+
+    return tokenPrice
+}
