@@ -55,3 +55,23 @@ All notable changes to the Dynamic Bonding Curve SDK will be documented in this 
 - `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions now require a `leftover` parameter.
 - `buildCurveGraphAndCreateConfig` uses liquidityWeights[] instead of kFactor now.
 - Added receiver option in `claimPartnerTradingFee` and `claimCreatorTradingFee`
+
+## [1.1.5] - 2025-05-19
+
+### Release Notes
+
+#### Feature Changes
+
+- feat: removed `buildCurveAndCreateConfig`, `buildCurveAndCreateConfigByMarketCap`, `buildCurveGraphAndCreateConfig` functions
+- feat: added `buildCurveWithTwoSegments` and `buildCurveWithCreatorFirstBuy` functions
+- fix: update `docs.md` with the latest changes
+- feat: added `getPoolByBaseMint` function
+- chore: clean up the code
+- feat: added `tempWSolAcc` param to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
+- feat: added `calculateInitialPriceFromSqrtStartPrice`, `calculateFeeScheduler` and `calculateLockedVesting` functions
+- fix: reduced client-side filtering in `getPoolsQuoteFeesByConfig` and `getPoolsBaseFeesByConfig`
+
+#### Breaking Changes
+
+- `buildCurveAndCreateConfig`, `buildCurveAndCreateConfigByMarketCap`, `buildCurveGraphAndCreateConfig` functions are deprecated. In order to build and create curve config, use the helper functions (`buildCurve`, `buildCurveWithMarketCap`, `buildCurveWithTwoSegments`, `buildCurveWithLiquidityWeights`, `buildCurveWithCreatorFirstBuy`) to build the curve config first before calling `createConfig`.
+- `tempWSolAcc` param added to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions. It is required when receiver != creator/feeClaimer.
