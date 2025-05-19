@@ -1,9 +1,10 @@
 import { expect, test, describe } from 'bun:test'
 import {
     buildCurve,
-    buildCurveByMarketCap,
+    buildCurveWithMarketCap,
     buildCurveWithCreatorFirstBuy,
     buildCurveWithLiquidityWeights,
+    buildCurveWithTwoSegments,
 } from '../src/helpers'
 import BN from 'bn.js'
 import {
@@ -73,7 +74,7 @@ describe('buildCurve tests', () => {
 
     test('build curve by market cap', () => {
         console.log('\n testing build curve by market cap...')
-        const config = buildCurveByMarketCap({
+        const config = buildCurveWithMarketCap({
             ...baseParams,
             initialMarketCap: 23.5,
             migrationMarketCap: 405.882352941,
@@ -104,7 +105,7 @@ describe('buildCurve tests', () => {
             },
         }
 
-        const config = buildCurveByMarketCap(lockedVestingParams)
+        const config = buildCurveWithMarketCap(lockedVestingParams)
 
         console.log('config with locked vesting:', convertBNToDecimal(config))
         expect(config).toBeDefined()
@@ -319,6 +320,46 @@ describe('buildCurve tests', () => {
         }
 
         const config = buildCurveWithCreatorFirstBuy(curveGraphParams)
+
+        console.log(
+            'config for curve with creator first buy:',
+            convertBNToDecimal(config)
+        )
+        console.log(
+            'migrationQuoteThreshold: %d',
+            config.migrationQuoteThreshold
+                .div(new BN(10 ** TokenDecimal.NINE))
+                .toString()
+        )
+        expect(config).toBeDefined()
+        expect(config.migrationQuoteThreshold).toBeDefined()
+        expect(config.curve).toBeDefined()
+        expect(config.curve.length).toBeGreaterThan(0)
+    })
+
+    test('build two segment curve with market cap', () => {
+        console.log('\n testing build two segment curve with market cap...')
+
+        const curveGraphParams = {
+            ...baseParams,
+            totalTokenSupply: 1000000000,
+            initialMarketCap: 20,
+            migrationMarketCap: 320,
+            percentageSupplyOnMigration: 20,
+            tokenBaseDecimal: TokenDecimal.SIX,
+            tokenQuoteDecimal: TokenDecimal.NINE,
+            leftover: 350000000,
+            migrationOption: MigrationOption.MET_DAMM_V2,
+            lockedVesting: {
+                amountPerPeriod: new BN(0),
+                cliffDurationFromMigrationTime: new BN(0),
+                frequency: new BN(0),
+                numberOfPeriod: new BN(0),
+                cliffUnlockAmount: new BN(0),
+            },
+        }
+
+        const config = buildCurveWithTwoSegments(curveGraphParams)
 
         console.log(
             'config for curve with creator first buy:',

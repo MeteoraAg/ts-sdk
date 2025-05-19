@@ -3,9 +3,10 @@ import BN from 'bn.js'
 import {
     type ConfigParameters,
     type BuildCurveParam,
-    BuildCurveByMarketCapParam,
+    BuildCurveWithMarketCapParam,
     BuildCurveWithLiquidityWeightsParam,
     BuildCurveWithCreatorFirstBuyParam,
+    BuildCurveWithTwoSegmentsParam,
 } from '../types'
 import { BASIS_POINT_MAX, FEE_DENOMINATOR, MAX_SQRT_PRICE } from '../constants'
 import {
@@ -23,6 +24,7 @@ import {
     bpsToFeeNumerator,
     getDynamicFeeParams,
     getMinBaseFeeBps,
+    getTwoCurve,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
 
@@ -188,15 +190,15 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
  * @param buildCurveByMarketCapParam - The parameters for the custom constant product curve by market cap
  * @returns The build custom constant product curve by market cap
  */
-export function buildCurveByMarketCap(
-    buildCurveByMarketCapParam: BuildCurveByMarketCapParam
+export function buildCurveWithMarketCap(
+    buildCurveWithMarketCapParam: BuildCurveWithMarketCapParam
 ): ConfigParameters {
     const {
         initialMarketCap,
         migrationMarketCap,
         lockedVesting,
         totalTokenSupply,
-    } = buildCurveByMarketCapParam
+    } = buildCurveWithMarketCapParam
 
     const percentageSupplyOnMigration = calculatePercentageSupplyOnMigration(
         new BN(initialMarketCap),
@@ -211,10 +213,172 @@ export function buildCurveByMarketCap(
     )
 
     return buildCurve({
-        ...buildCurveByMarketCapParam,
+        ...buildCurveWithMarketCapParam,
         percentageSupplyOnMigration,
         migrationQuoteThreshold,
     })
+}
+
+/**
+ * Build a custom constant product curve by market cap
+ * @param buildCurveWithTwoSegmentsParam - The parameters for the custom constant product curve by market cap
+ * @returns The build custom constant product curve by market cap
+ */
+export function buildCurveWithTwoSegments(
+    buildCurveWithTwoSegmentsParam: BuildCurveWithTwoSegmentsParam
+): ConfigParameters {
+    const {
+        totalTokenSupply,
+        initialMarketCap,
+        migrationMarketCap,
+        percentageSupplyOnMigration,
+        migrationOption,
+        tokenBaseDecimal,
+        tokenQuoteDecimal,
+        creatorTradingFeePercentage,
+        collectFeeMode,
+        lockedVesting,
+        leftover,
+        tokenType,
+        partnerLpPercentage,
+        creatorLpPercentage,
+        partnerLockedLpPercentage,
+        creatorLockedLpPercentage,
+        activationType,
+        baseFeeBps,
+        dynamicFeeEnabled,
+        migrationFeeOption,
+    } = buildCurveWithTwoSegmentsParam
+
+    const {
+        numberOfPeriod,
+        reductionFactor,
+        periodFrequency,
+        feeSchedulerMode,
+    } = buildCurveWithTwoSegmentsParam.feeSchedulerParam
+
+    let migrationBaseSupply = new BN(totalTokenSupply)
+        .mul(new BN(percentageSupplyOnMigration))
+        .div(new BN(100))
+
+    let totalSupply = new BN(totalTokenSupply).mul(
+        new BN(10).pow(new BN(tokenBaseDecimal))
+    )
+
+    // migrationQuoteThreshold = migrationMarketCap * migrationBaseSupply / totalTokenSupply
+    let migrationQuoteThreshold = calculateMigrationQuoteThreshold(
+        new BN(migrationMarketCap),
+        percentageSupplyOnMigration
+    )
+
+    let migrationQuoteThresholdWithDecimals = new BN(
+        migrationQuoteThreshold * 10 ** tokenQuoteDecimal
+    )
+
+    let migrationPrice = new Decimal(migrationQuoteThreshold.toString()).div(
+        new Decimal(migrationBaseSupply.toString())
+    )
+    let migrateSqrtPrice = getSqrtPriceFromPrice(
+        migrationPrice.toString(),
+        tokenBaseDecimal,
+        tokenQuoteDecimal
+    )
+
+    let migrationBaseAmount = getMigrationBaseToken(
+        new BN(migrationQuoteThresholdWithDecimals),
+        migrateSqrtPrice,
+        migrationOption
+    )
+
+    let totalVestingAmount = getTotalVestingAmount(lockedVesting)
+
+    let totalLeftover = new BN(leftover * 10 ** tokenBaseDecimal)
+    let swapAmount = totalSupply
+        .sub(migrationBaseAmount)
+        .sub(totalVestingAmount)
+        .sub(totalLeftover)
+
+    let initialSqrtPrice = getSqrtPriceFromMarketCap(
+        initialMarketCap,
+        totalTokenSupply,
+        tokenBaseDecimal,
+        tokenQuoteDecimal
+    )
+
+    let { sqrtStartPrice, curve } = getTwoCurve(
+        migrateSqrtPrice,
+        initialSqrtPrice,
+        swapAmount,
+        migrationQuoteThresholdWithDecimals
+    )
+
+    let totalDynamicSupply = getTotalSupplyFromCurve(
+        migrationQuoteThresholdWithDecimals,
+        sqrtStartPrice,
+        curve,
+        lockedVesting,
+        migrationOption,
+        totalLeftover
+    )
+
+    if (totalDynamicSupply.gt(totalSupply)) {
+        // precision loss is used for leftover
+        let leftOverDelta = totalDynamicSupply.sub(totalSupply)
+        if (!leftOverDelta.lt(totalLeftover)) {
+            throw new Error('leftOverDelta must be less than totalLeftover')
+        }
+    }
+
+    // Calculate minimum base fee for dynamic fee calculation
+    let minBaseFeeBps = baseFeeBps
+    if (periodFrequency > 0) {
+        const cliffFeeNumerator =
+            (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
+
+        minBaseFeeBps = getMinBaseFeeBps(
+            cliffFeeNumerator,
+            numberOfPeriod,
+            reductionFactor,
+            feeSchedulerMode
+        )
+    }
+
+    const instructionParams: ConfigParameters = {
+        poolFees: {
+            baseFee: {
+                cliffFeeNumerator: bpsToFeeNumerator(baseFeeBps),
+                numberOfPeriod: numberOfPeriod,
+                reductionFactor: new BN(reductionFactor),
+                periodFrequency: new BN(periodFrequency),
+                feeSchedulerMode: feeSchedulerMode,
+            },
+            dynamicFee: dynamicFeeEnabled
+                ? getDynamicFeeParams(minBaseFeeBps)
+                : null,
+        },
+        activationType,
+        collectFeeMode,
+        migrationOption,
+        tokenType,
+        tokenDecimal: tokenBaseDecimal,
+        migrationQuoteThreshold: migrationQuoteThresholdWithDecimals,
+        partnerLpPercentage,
+        creatorLpPercentage,
+        partnerLockedLpPercentage,
+        creatorLockedLpPercentage,
+        sqrtStartPrice,
+        lockedVesting,
+        migrationFeeOption,
+        tokenSupply: {
+            preMigrationTokenSupply: totalSupply,
+            postMigrationTokenSupply: totalSupply,
+        },
+        creatorTradingFeePercentage,
+        padding0: [],
+        padding1: [],
+        curve,
+    }
+    return instructionParams
 }
 
 /**
