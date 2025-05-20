@@ -225,11 +225,12 @@ export type CreateDammV1MigrationMetadataParam = {
 export type CreateDammV2MigrationMetadataParam =
     CreateDammV1MigrationMetadataParam
 
-export type FeeSchedulerParameters = {
+export type FeeSchedulerParams = {
+    startingFeeBps: number
+    endingFeeBps: number
     numberOfPeriod: number
-    reductionFactor: number
-    periodFrequency: number
     feeSchedulerMode: FeeSchedulerMode
+    totalDuration: number
 }
 
 export type BuildCurveBaseParam = {
@@ -238,8 +239,7 @@ export type BuildCurveBaseParam = {
     tokenBaseDecimal: TokenDecimal
     tokenQuoteDecimal: TokenDecimal
     lockedVesting: LockedVestingParameters
-    feeSchedulerParam: FeeSchedulerParameters
-    baseFeeBps: number
+    feeSchedulerParam: FeeSchedulerParams
     dynamicFeeEnabled: boolean
     activationType: ActivationType
     collectFeeMode: CollectFeeMode
