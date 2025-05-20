@@ -48,3 +48,23 @@ export const BIN_STEP_BPS_DEFAULT = 1
 //  bin_step << 64 / BASIS_POINT_MAX
 export const BIN_STEP_BPS_U128_DEFAULT = new BN('1844674407370955')
 export const MAX_PRICE_CHANGE_BPS_DEFAULT = 1500 // 15%
+
+// DAMM V1 Migration Fee Options
+export const DAMM_V1_MIGRATION_FEE_ADDRESS = [
+    new PublicKey('8f848CEy8eY6PhJ3VcemtBDzPPSD4Vq7aJczLZ3o8MmX'), // FixedBps25
+    new PublicKey('HBxB8Lf14Yj8pqeJ8C4qDb5ryHL7xwpuykz31BLNYr7S'), // FixedBps30
+    new PublicKey('7v5vBdUQHTNeqk1HnduiXcgbvCyVEZ612HLmYkQoAkik'), // FixedBps100
+    new PublicKey('EkvP7d5yKxovj884d2DwmBQbrHUWRLGK6bympzrkXGja'), // FixedBps200
+    new PublicKey('9EZYAJrcqNWNQzP2trzZesP7XKMHA1jEomHzbRsdX8R2'), // FixedBps400
+    new PublicKey('8cdKo87jZU2R12KY1BUjjRPwyjgdNjLGqSGQyrDshhud'), // FixedBps600
+]
+
+// DAMM V2 Migration Fee Options
+export const DAMM_V2_MIGRATION_FEE_ADDRESS = [
+    new PublicKey('7F6dnUcRuyM2TwR8myT1dYypFXpPSxqwKNSFNkxyNESd'), // FixedBps25
+    new PublicKey('2nHK1kju6XjphBLbNxpM5XRGFj7p9U8vvNzyZiha1z6k'), // FixedBps30
+    new PublicKey('Hv8Lmzmnju6m7kcokVKvwqz7QPmdX9XfKjJsXz8RXcjp'), // FixedBps100
+    new PublicKey('2c4cYd4reUYVRAB9kUUkrq55VPyy2FNQ3FDL4o12JXmq'), // FixedBps200
+    new PublicKey('AkmQWebAwFvWk55wBoCr5D62C6VVDTzi84NJuD9H7cFD'), // FixedBps400
+    new PublicKey('DbCRBj8McvPYHJG1ukj8RE15h2dCNUdTAESG49XpQ44u'), // FixedBps600
+]
