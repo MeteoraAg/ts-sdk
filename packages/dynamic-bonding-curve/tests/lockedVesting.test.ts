@@ -1,8 +1,4 @@
-import {
-    calculateLockedVesting,
-    getTotalVestingAmount,
-    TokenDecimal,
-} from '../src'
+import { getLockedVesting, getTotalVestingAmount, TokenDecimal } from '../src'
 import { convertBNToDecimal } from './utils/common'
 
 describe('calculateLockedVesting tests', () => {
@@ -13,7 +9,7 @@ describe('calculateLockedVesting tests', () => {
         const cliffDurationFromMigrationTime = 0
         const frequency = 1
 
-        const result = calculateLockedVesting(
+        const result = getLockedVesting(
             totalVestingAmount,
             numberOfPeriod,
             amountPerPeriod,
@@ -38,7 +34,7 @@ describe('calculateLockedVesting tests', () => {
         const cliffDurationFromMigrationTime = 0
         const frequency = 1
 
-        const result = calculateLockedVesting(
+        const result = getLockedVesting(
             totalVestingAmount,
             numberOfPeriod,
             amountPerPeriod,

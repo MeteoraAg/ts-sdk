@@ -349,30 +349,4 @@ export class StateService extends DynamicBondingCurveProgram {
             totalTradingBaseFee: pool.account.metrics.totalTradingBaseFee,
         }))
     }
-
-    /**
-     * Get token decimals for a particular mint
-     * @param mintAddress - The mint address to get decimals for
-     * @param tokenType - The token type (SPL = 0 or Token2022 = 1)
-     * @returns The number of decimals for the token
-     */
-    async getTokenDecimals(
-        mintAddress: PublicKey | string,
-        tokenType: TokenType
-    ): Promise<number> {
-        const mint =
-            mintAddress instanceof PublicKey
-                ? mintAddress
-                : new PublicKey(mintAddress)
-
-        const mintInfo = await getMint(
-            this.program.provider.connection,
-            mint,
-            this.commitment,
-            tokenType === TokenType.Token2022
-                ? TOKEN_2022_PROGRAM_ID
-                : TOKEN_PROGRAM_ID
-        )
-        return mintInfo.decimals
-    }
 }

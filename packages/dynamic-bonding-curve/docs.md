@@ -61,7 +61,6 @@
     - [getPoolPartnerFeeMetrics](#getPoolPartnerFeeMetrics)
     - [getPoolsQuoteFeesByConfig](#getPoolsQuoteFeesByConfig)
     - [getPoolsBaseFeesByConfig](#getPoolsBaseFeesByConfig)
-    - [getTokenDecimals](#getTokenDecimals)
 
 - [Helper Functions](#helper-functions)
 
@@ -2141,38 +2140,6 @@ An array of objects containing base fee metrics for each pool.
 
 ```typescript
 const fees = await client.state.getPoolsBaseFeesByConfig(configAddress)
-```
-
----
-
-### getTokenDecimals
-
-Gets the number of decimals for a specific token.
-
-#### Function
-
-```typescript
-async getTokenDecimals(
-    mintAddress: PublicKey | string,
-    tokenType: TokenType
-): Promise<number>
-```
-
-#### Parameters
-
-```typescript
-mintAddress: PublicKey | string // The mint address
-tokenType: TokenType // The token type (SPL = 0 or Token2022 = 1)
-```
-
-#### Returns
-
-The number of decimals for the token.
-
-#### Example
-
-```typescript
-const decimals = await client.state.getTokenDecimals(mintAddress, TokenType.SPL)
 ```
 
 ---

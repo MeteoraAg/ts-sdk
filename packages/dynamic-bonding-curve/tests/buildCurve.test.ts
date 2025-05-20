@@ -16,8 +16,8 @@ import {
     TokenDecimal,
     TokenType,
 } from '../src'
-import { convertBNToDecimal } from './utils/common'
 import Decimal from 'decimal.js'
+import { convertBNToDecimal } from './utils/common'
 
 describe('buildCurve tests', () => {
     const baseParams = {

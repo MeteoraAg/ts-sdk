@@ -10,6 +10,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "tests/utils/defaults.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

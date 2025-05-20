@@ -8,7 +8,7 @@ import {
     VAULT_PROGRAM_ID,
     DYNAMIC_BONDING_CURVE_PROGRAM_ID,
 } from '../constants'
-import { getFirstKey, getSecondKey } from './utils'
+import { getFirstKey, getSecondKey } from './common'
 
 const SEED = Object.freeze({
     POOL_AUTHORITY: 'pool_authority',
@@ -30,10 +30,6 @@ const SEED = Object.freeze({
     BASE_LOCKER: 'base_locker',
     VAULT: 'vault',
 })
-
-/////////////////////
-// EVENT AUTHORITY //
-/////////////////////
 
 /**
  * Derive DBC event authority
@@ -83,10 +79,6 @@ export function deriveLockerEventAuthority(): PublicKey {
     return eventAuthority
 }
 
-////////////////////
-// POOL AUTHORITY //
-////////////////////
-
 /**
  * Derive DBC pool authority
  * @returns The pool authority
@@ -125,10 +117,6 @@ export function deriveDammV2PoolAuthority(): PublicKey {
 
     return poolAuthority
 }
-
-////////////////////
-// POOL ADDRESSES //
-////////////////////
 
 /**
  * Derive DBC pool address
@@ -209,10 +197,6 @@ export function deriveDammV2PoolAddress(
     )[0]
 }
 
-////////////////////////
-// METADATA ADDRESSES //
-////////////////////////
-
 /**
  * Derive the mint metadata address
  * @param mint - The mint
@@ -283,10 +267,6 @@ export function deriveDammV2MigrationMetadataAddress(
         DYNAMIC_BONDING_CURVE_PROGRAM_ID
     )[0]
 }
-
-/////////////////////
-// VAULT ADDRESSES //
-/////////////////////
 
 /**
  * Derive DBC token vault address
@@ -403,10 +383,6 @@ export function deriveTokenVaultKey(vaultKey: PublicKey): PublicKey {
     )[0]
 }
 
-//////////////////
-// LP ADDRESSES //
-//////////////////
-
 /**
  * Derive LP mint address
  * @param pool - The pool
@@ -430,10 +406,6 @@ export function deriveDammV1LpMintAddress(pool: PublicKey) {
         DAMM_V1_PROGRAM_ID
     )[0]
 }
-
-////////////////////////
-// POSITION ADDRESSES //
-////////////////////////
 
 /**
  * Derive the position address
@@ -460,10 +432,6 @@ export function derivePositionNftAccount(
         DAMM_V2_PROGRAM_ID
     )[0]
 }
-
-//////////////////////
-// ESCROW ADDRESSES //
-//////////////////////
 
 /**
  * Derive the DAMM V1 lock escrow address
@@ -518,10 +486,6 @@ export function deriveEscrow(base: PublicKey): PublicKey {
     return escrow
 }
 
-///////////////////
-// FEE ADDRESSES //
-///////////////////
-
 /**
  * Derive the protocol fee address
  * @param mint - The mint
@@ -537,10 +501,6 @@ export function deriveDammV1ProtocolFeeAddress(
         DAMM_V1_PROGRAM_ID
     )[0]
 }
-
-////////////////////
-// LOCKER ADDRESS //
-////////////////////
 
 /**
  * Derive the base key for the locker
