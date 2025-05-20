@@ -7,12 +7,14 @@ describe('calculateFeeScheduler tests', () => {
         const endingFeeBps = 1000 // 10%
         const numberOfPeriod = 144
         const feeSchedulerMode = FeeSchedulerMode.Linear
+        const totalDuration = 60
 
         const result = calculateFeeScheduler(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,
-            numberOfPeriod
+            numberOfPeriod,
+            totalDuration
         )
 
         console.log('result', convertBNToDecimal(result))
@@ -26,12 +28,14 @@ describe('calculateFeeScheduler tests', () => {
         const endingFeeBps = 1000 // 10%
         const numberOfPeriod = 37.5
         const feeSchedulerMode = FeeSchedulerMode.Exponential
+        const totalDuration = 144 * 60 * 60 * 24
 
         const result = calculateFeeScheduler(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,
-            numberOfPeriod
+            numberOfPeriod,
+            totalDuration
         )
 
         console.log('result', convertBNToDecimal(result))
