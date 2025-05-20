@@ -265,11 +265,9 @@ export function buildCurveWithTwoSegments(
         new BN(10).pow(new BN(tokenBaseDecimal))
     )
 
-    // migrationQuoteThreshold = migrationMarketCap * migrationBaseSupply / totalTokenSupply
-    let migrationQuoteThreshold = calculateMigrationQuoteThreshold(
-        new BN(migrationMarketCap),
-        percentageSupplyOnMigration
-    )
+    // migrationMarketCap * migrationBaseSupply / totalTokenSupply
+    let migrationQuoteThreshold =
+        (migrationMarketCap * percentageSupplyOnMigration) / 100
 
     let migrationQuoteThresholdWithDecimals = new BN(
         migrationQuoteThreshold * 10 ** tokenQuoteDecimal

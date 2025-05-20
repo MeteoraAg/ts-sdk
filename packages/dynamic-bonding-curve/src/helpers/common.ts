@@ -1,10 +1,7 @@
 import {
-    ActivationType,
     BaseFee,
-    BaseFeeConfig,
     DynamicFeeParameters,
     FeeSchedulerMode,
-    FeeSchedulerParameters,
     MigrationOption,
     Rounding,
     TokenDecimal,
@@ -682,7 +679,8 @@ export function calculateFeeScheduler(
     startingFeeBps: number,
     endingFeeBps: number,
     feeSchedulerMode: FeeSchedulerMode,
-    numberOfPeriod: number
+    numberOfPeriod: number,
+    totalDuration: number
 ): {
     cliffFeeNumerator: BN
     numberOfPeriod: number
@@ -690,9 +688,50 @@ export function calculateFeeScheduler(
     reductionFactor: BN
     feeSchedulerMode: FeeSchedulerMode
 } {
+    if (startingFeeBps == endingFeeBps) {
+        if (numberOfPeriod != 0 || totalDuration != 0) {
+            throw new Error(
+                'numberOfPeriod and totalDuration must both be zero'
+            )
+        }
+
+        return {
+            cliffFeeNumerator: bpsToFeeNumerator(startingFeeBps),
+            numberOfPeriod: 0,
+            periodFrequency: new BN(0),
+            reductionFactor: new BN(0),
+            feeSchedulerMode: 0,
+        }
+    }
+
+    if (numberOfPeriod <= 0) {
+        throw new Error('Total periods must be greater than zero')
+    }
+
+    if (startingFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
+        throw new Error(
+            `startingFeeBps (${startingFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+                new BN(MAX_FEE_NUMERATOR)
+            )} bps`
+        )
+    }
+
+    if (endingFeeBps > startingFeeBps) {
+        throw new Error(
+            'endingFeeBps must be less than or equal to startingFeeBps'
+        )
+    }
+
+    if (numberOfPeriod == 0 || totalDuration == 0) {
+        throw new Error(
+            'numberOfPeriod and totalDuration must both greater than zero'
+        )
+    }
+
     // convert fee from bps to fee numerator
     const cliffFeeNumerator = bpsToFeeNumerator(startingFeeBps)
     const endingFeeNumerator = bpsToFeeNumerator(endingFeeBps)
+    const periodFrequency = new BN(totalDuration / numberOfPeriod)
 
     if (feeSchedulerMode === FeeSchedulerMode.Linear) {
         // for linear mode: fee = cliff_fee_numerator - (period * reduction_factor)
@@ -702,13 +741,12 @@ export function calculateFeeScheduler(
         return {
             cliffFeeNumerator,
             numberOfPeriod,
-            periodFrequency: new BN(1),
+            periodFrequency: new BN(periodFrequency),
             reductionFactor,
             feeSchedulerMode: FeeSchedulerMode.Linear,
         }
     } else {
         // for exponential mode: fee = cliff_fee_numerator * (1 - reduction_factor/10_000)^period
-        // calculate the decay rate needed to reach ending fee after numberOfPeriod periods
         const decayRate = Math.pow(
             endingFeeNumerator.toNumber() / cliffFeeNumerator.toNumber(),
             1 / numberOfPeriod
@@ -719,7 +757,7 @@ export function calculateFeeScheduler(
         return {
             cliffFeeNumerator,
             numberOfPeriod,
-            periodFrequency: new BN(1),
+            periodFrequency: new BN(periodFrequency),
             reductionFactor,
             feeSchedulerMode: FeeSchedulerMode.Exponential,
         }
@@ -751,7 +789,6 @@ export function calculateLockedVesting(
     cliffUnlockAmount: BN
 } {
     // total_locked_vesting_amount = cliff_unlock_amount + (amount_per_period * number_of_period)
-    // calculate cliff unlock amount based on total vesting amount and periodic amounts
     const totalPeriodicAmount = amountPerPeriod * numberOfPeriod
     const cliffUnlockAmount = totalVestingAmount - totalPeriodicAmount
 
