@@ -1,4 +1,4 @@
-import { FeeSchedulerMode, calculateFeeScheduler } from '../src'
+import { FeeSchedulerMode, getBaseFeeParams } from '../src'
 import { convertBNToDecimal } from './utils/common'
 
 describe('calculateFeeScheduler tests', () => {
@@ -9,7 +9,7 @@ describe('calculateFeeScheduler tests', () => {
         const feeSchedulerMode = FeeSchedulerMode.Linear
         const totalDuration = 60
 
-        const result = calculateFeeScheduler(
+        const result = getBaseFeeParams(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,
@@ -30,7 +30,7 @@ describe('calculateFeeScheduler tests', () => {
         const feeSchedulerMode = FeeSchedulerMode.Exponential
         const totalDuration = 144 * 60 * 60 * 24
 
-        const result = calculateFeeScheduler(
+        const result = getBaseFeeParams(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,

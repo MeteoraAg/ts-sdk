@@ -70,6 +70,7 @@ All notable changes to the Dynamic Bonding Curve SDK will be documented in this 
 - feat: added `tempWSolAcc` param to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
 - feat: added `calculateInitialPriceFromSqrtStartPrice`, `calculateFeeScheduler` and `calculateLockedVesting` functions
 - fix: reduced client-side filtering in `getPoolsQuoteFeesByConfig` and `getPoolsBaseFeesByConfig`
+- feat: removed `getTokenDecimal` state function from client.state
 
 #### Breaking Changes
 

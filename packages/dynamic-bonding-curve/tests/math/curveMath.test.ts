@@ -5,7 +5,7 @@ import {
     getNextSqrtPriceFromInput,
 } from '../../src/math/curve'
 import { BN } from 'bn.js'
-import { Q } from '../utils/test-helpers'
+import { Q } from '../utils/common'
 import { Rounding } from '../../src/types'
 
 test('Base amount calculation', () => {

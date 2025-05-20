@@ -1,69 +1,8 @@
-import { Program } from '@coral-xyz/anchor'
-import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import BN from 'bn.js'
-import {
-    PublicKey,
-    SystemProgram,
-    SYSVAR_RENT_PUBKEY,
-    TransactionInstruction,
-    type GetProgramAccountsFilter,
-    Connection,
-} from '@solana/web3.js'
-
-import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { TokenType } from '../types'
-import {
-    deriveTokenVaultKey,
-    deriveVaultAddress,
-    deriveVaultLpMintAddress,
-} from './accounts'
-import { BASE_ADDRESS } from '../constants'
-import type { DynamicVault } from '../idl/dynamic-vault/idl'
-import type { DynamicBondingCurve } from '../idl/dynamic-bonding-curve/idl'
-import type { DammV1 } from '../idl/damm-v1/idl'
-
-/**
- * Get the first key
- * @param key1 - The first key
- * @param key2 - The second key
- * @returns The first key
- */
-export function getFirstKey(key1: PublicKey, key2: PublicKey) {
-    const buf1 = key1.toBuffer()
-    const buf2 = key2.toBuffer()
-    // Buf1 > buf2
-    if (Buffer.compare(buf1, buf2) === 1) {
-        return buf1
-    }
-    return buf2
-}
-
-/**
- * Get the second key
- * @param key1 - The first key
- * @param key2 - The second key
- * @returns The second key
- */
-export function getSecondKey(key1: PublicKey, key2: PublicKey) {
-    const buf1 = key1.toBuffer()
-    const buf2 = key2.toBuffer()
-    // Buf1 > buf2
-    if (Buffer.compare(buf1, buf2) === 1) {
-        return buf2
-    }
-    return buf1
-}
-
-/**
- * Get the token program for a given token type
- * @param tokenType - The token type
- * @returns The token program
- */
-export function getTokenProgram(tokenType: TokenType): PublicKey {
-    return tokenType === TokenType.SPL
-        ? TOKEN_PROGRAM_ID
-        : TOKEN_2022_PROGRAM_ID
-}
+import { PublicKey, type GetProgramAccountsFilter } from '@solana/web3.js'
+import { NATIVE_MINT } from '@solana/spl-token'
+import { BASIS_POINT_MAX, FEE_DENOMINATOR } from '../constants'
+import Decimal from 'decimal.js'
 
 /**
  * Create a memcmp filter for owner-based filtering
@@ -88,115 +27,12 @@ export function createProgramAccountFilter(
 }
 
 /**
- * Generic account fetch helper
- * @param accountAddress - The address of the account to fetch
- * @param accountType - The type of account to fetch from program.account
- * @returns The fetched account data
- */
-export async function getAccountData<T>(
-    accountAddress: PublicKey | string,
-    accountType: keyof Program<DynamicBondingCurve>['account'],
-    program: Program<DynamicBondingCurve>
-): Promise<T> {
-    const address =
-        accountAddress instanceof PublicKey
-            ? accountAddress
-            : new PublicKey(accountAddress)
-
-    return (await program.account[accountType].fetchNullable(address)) as T
-}
-
-/**
- * Get creation timestamp for an account
- * @param accountAddress - The address of the account
- * @param connection - The Solana connection instance
- * @returns The creation timestamp as a Date object, or undefined if not found
- */
-export async function getAccountCreationTimestamp(
-    accountAddress: PublicKey | string,
-    connection: Connection
-): Promise<Date | undefined> {
-    const address =
-        accountAddress instanceof PublicKey
-            ? accountAddress
-            : new PublicKey(accountAddress)
-
-    const signatures = await connection.getSignaturesForAddress(address, {
-        limit: 1,
-    })
-
-    return signatures[0]?.blockTime
-        ? new Date(signatures[0].blockTime * 1000)
-        : undefined
-}
-
-/**
- * Get creation timestamps for multiple accounts
- * @param accountAddresses - Array of account addresses
- * @param connection - The Solana connection instance
- * @returns Array of creation timestamps corresponding to the input addresses
- */
-export async function getAccountCreationTimestamps(
-    accountAddresses: (PublicKey | string)[],
-    connection: Connection
-): Promise<(Date | undefined)[]> {
-    const timestampPromises = accountAddresses.map((address) =>
-        getAccountCreationTimestamp(address, connection)
-    )
-    return Promise.all(timestampPromises)
-}
-
-/**
  * Check if a mint is the native SOL mint
  * @param mint - The mint to check
  * @returns Whether the mint is the native SOL mint
  */
 export function isNativeSol(mint: PublicKey): boolean {
     return mint.toString() === NATIVE_MINT.toString()
-}
-
-/**
- * Get the total token supply
- * @param swapBaseAmount - The swap base amount
- * @param migrationBaseThreshold - The migration base threshold
- * @param lockedVestingParams - The locked vesting parameters
- * @returns The total token supply
- */
-export function getTotalTokenSupply(
-    swapBaseAmount: BN,
-    migrationBaseThreshold: BN,
-    lockedVestingParams: {
-        amountPerPeriod: BN
-        numberOfPeriod: BN
-        cliffUnlockAmount: BN
-    }
-): BN {
-    try {
-        // calculate total circulating amount
-        const totalCirculatingAmount = swapBaseAmount.add(
-            migrationBaseThreshold
-        )
-
-        // calculate total locked vesting amount
-        const totalLockedVestingAmount =
-            lockedVestingParams.cliffUnlockAmount.add(
-                lockedVestingParams.amountPerPeriod.mul(
-                    lockedVestingParams.numberOfPeriod
-                )
-            )
-
-        // calculate total amount
-        const totalAmount = totalCirculatingAmount.add(totalLockedVestingAmount)
-
-        // check for overflow
-        if (totalAmount.isNeg() || totalAmount.bitLength() > 64) {
-            throw new Error('Math overflow')
-        }
-
-        return totalAmount
-    } catch (error) {
-        throw new Error('Math overflow')
-    }
 }
 
 /**
@@ -221,80 +57,34 @@ export function isDefaultLockedVesting(lockedVesting: {
 }
 
 /**
- * Create a permissionless dynamic vault
- * @param mint - The mint of the vault
- * @param payer - The payer of the vault
- * @param vaultProgram - The vault program
- * @returns The vault key, token vault key, and lp mint key
+ * Convert a decimal to a BN
+ * @param value - The value
+ * @returns The BN
  */
-export async function createInitializePermissionlessDynamicVaultIx(
-    mint: PublicKey,
-    payer: PublicKey,
-    vaultProgram: Program<DynamicVault>
-): Promise<{
-    vaultKey: PublicKey
-    tokenVaultKey: PublicKey
-    lpMintKey: PublicKey
-    instruction: TransactionInstruction
-}> {
-    const vaultKey = deriveVaultAddress(mint, BASE_ADDRESS)
-
-    const tokenVaultKey = deriveTokenVaultKey(vaultKey)
-
-    const lpMintKey = deriveVaultLpMintAddress(vaultKey)
-
-    const ix = await vaultProgram.methods
-        .initialize()
-        .accountsPartial({
-            vault: vaultKey,
-            tokenVault: tokenVaultKey,
-            tokenMint: mint,
-            lpMint: lpMintKey,
-            payer,
-            rent: SYSVAR_RENT_PUBKEY,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-        })
-        .instruction()
-
-    return {
-        instruction: ix,
-        vaultKey,
-        tokenVaultKey,
-        lpMintKey,
-    }
+export function convertDecimalToBN(value: Decimal): BN {
+    return new BN(value.floor().toFixed())
 }
 
 /**
- * Create a lock escrow instruction
- * @param connection - The connection to the Solana network
- * @param payer - The payer of the lock escrow
- * @param pool - The pool address
- * @param lpMint - The lp mint address
- * @param escrowOwner - The owner of the escrow
- * @param lockEscrowKey - The lock escrow key
- * @param dammV1Program - The DAMM V1 program
- * @returns The lock escrow instruction
+ * Converts basis points (bps) to a fee numerator
+ * 1 bps = 0.01% = 0.0001 in decimal
+ *
+ * @param bps - The value in basis points [1-10_000]
+ * @returns The equivalent fee numerator
  */
-export async function createLockEscrowIx(
-    payer: PublicKey,
-    pool: PublicKey,
-    lpMint: PublicKey,
-    escrowOwner: PublicKey,
-    lockEscrowKey: PublicKey,
-    dammV1Program: Program<DammV1>
-): Promise<TransactionInstruction> {
-    const ix = await dammV1Program.methods
-        .createLockEscrow()
-        .accountsPartial({
-            pool,
-            lpMint,
-            owner: escrowOwner,
-            lockEscrow: lockEscrowKey,
-            payer: payer,
-            systemProgram: SystemProgram.programId,
-        })
-        .instruction()
+export function bpsToFeeNumerator(bps: number): BN {
+    return new BN(bps * FEE_DENOMINATOR).divn(BASIS_POINT_MAX)
+}
 
-    return ix
+/**
+ * Converts a fee numerator back to basis points (bps)
+ *
+ * @param feeNumerator - The fee numerator to convert
+ * @returns The equivalent value in basis points [1-10_000]
+ */
+export function feeNumeratorToBps(feeNumerator: BN): number {
+    return feeNumerator
+        .muln(BASIS_POINT_MAX)
+        .div(new BN(FEE_DENOMINATOR))
+        .toNumber()
 }

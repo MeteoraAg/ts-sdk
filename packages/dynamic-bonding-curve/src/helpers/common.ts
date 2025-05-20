@@ -32,6 +32,171 @@ import {
     getNextSqrtPriceFromInput,
 } from '../math/curve'
 import { pow } from '../math/safeMath'
+import { Connection, PublicKey } from '@solana/web3.js'
+import type { DynamicBondingCurve } from '../idl/dynamic-bonding-curve/idl'
+import { Program } from '@coral-xyz/anchor'
+import { bpsToFeeNumerator, feeNumeratorToBps } from './utils'
+
+/**
+ * Get the first key
+ * @param key1 - The first key
+ * @param key2 - The second key
+ * @returns The first key
+ */
+export function getFirstKey(key1: PublicKey, key2: PublicKey) {
+    const buf1 = key1.toBuffer()
+    const buf2 = key2.toBuffer()
+    // Buf1 > buf2
+    if (Buffer.compare(buf1, buf2) === 1) {
+        return buf1
+    }
+    return buf2
+}
+
+/**
+ * Get the second key
+ * @param key1 - The first key
+ * @param key2 - The second key
+ * @returns The second key
+ */
+export function getSecondKey(key1: PublicKey, key2: PublicKey) {
+    const buf1 = key1.toBuffer()
+    const buf2 = key2.toBuffer()
+    // Buf1 > buf2
+    if (Buffer.compare(buf1, buf2) === 1) {
+        return buf2
+    }
+    return buf1
+}
+
+/**
+ * Generic account fetch helper
+ * @param accountAddress - The address of the account to fetch
+ * @param accountType - The type of account to fetch from program.account
+ * @returns The fetched account data
+ */
+export async function getAccountData<T>(
+    accountAddress: PublicKey | string,
+    accountType: keyof Program<DynamicBondingCurve>['account'],
+    program: Program<DynamicBondingCurve>
+): Promise<T> {
+    const address =
+        accountAddress instanceof PublicKey
+            ? accountAddress
+            : new PublicKey(accountAddress)
+
+    return (await program.account[accountType].fetchNullable(address)) as T
+}
+
+/**
+ * Get creation timestamp for an account
+ * @param accountAddress - The address of the account
+ * @param connection - The Solana connection instance
+ * @returns The creation timestamp as a Date object, or undefined if not found
+ */
+export async function getAccountCreationTimestamp(
+    accountAddress: PublicKey | string,
+    connection: Connection
+): Promise<Date | undefined> {
+    const address =
+        accountAddress instanceof PublicKey
+            ? accountAddress
+            : new PublicKey(accountAddress)
+
+    const signatures = await connection.getSignaturesForAddress(address, {
+        limit: 1,
+    })
+
+    return signatures[0]?.blockTime
+        ? new Date(signatures[0].blockTime * 1000)
+        : undefined
+}
+
+/**
+ * Get creation timestamps for multiple accounts
+ * @param accountAddresses - Array of account addresses
+ * @param connection - The Solana connection instance
+ * @returns Array of creation timestamps corresponding to the input addresses
+ */
+export async function getAccountCreationTimestamps(
+    accountAddresses: (PublicKey | string)[],
+    connection: Connection
+): Promise<(Date | undefined)[]> {
+    const timestampPromises = accountAddresses.map((address) =>
+        getAccountCreationTimestamp(address, connection)
+    )
+    return Promise.all(timestampPromises)
+}
+
+/**
+ * Get the total token supply
+ * @param swapBaseAmount - The swap base amount
+ * @param migrationBaseThreshold - The migration base threshold
+ * @param lockedVestingParams - The locked vesting parameters
+ * @returns The total token supply
+ */
+export function getTotalTokenSupply(
+    swapBaseAmount: BN,
+    migrationBaseThreshold: BN,
+    lockedVestingParams: {
+        amountPerPeriod: BN
+        numberOfPeriod: BN
+        cliffUnlockAmount: BN
+    }
+): BN {
+    try {
+        // calculate total circulating amount
+        const totalCirculatingAmount = swapBaseAmount.add(
+            migrationBaseThreshold
+        )
+
+        // calculate total locked vesting amount
+        const totalLockedVestingAmount =
+            lockedVestingParams.cliffUnlockAmount.add(
+                lockedVestingParams.amountPerPeriod.mul(
+                    lockedVestingParams.numberOfPeriod
+                )
+            )
+
+        // calculate total amount
+        const totalAmount = totalCirculatingAmount.add(totalLockedVestingAmount)
+
+        // check for overflow
+        if (totalAmount.isNeg() || totalAmount.bitLength() > 64) {
+            throw new Error('Math overflow')
+        }
+
+        return totalAmount
+    } catch (error) {
+        throw new Error('Math overflow')
+    }
+}
+
+/**
+ * Get the price from the sqrt start price
+ * @param sqrtStartPrice - The sqrt start price
+ * @param tokenBaseDecimal - The base token decimal
+ * @param tokenQuoteDecimal - The quote token decimal
+ * @returns The initial price
+ */
+export function getPriceFromSqrtStartPrice(
+    sqrtStartPrice: BN,
+    tokenBaseDecimal: TokenDecimal,
+    tokenQuoteDecimal: TokenDecimal
+): Decimal {
+    // lamport price = sqrtStartPrice * sqrtStartPrice / 2^128
+    const sqrtStartPriceDecimal = new Decimal(sqrtStartPrice.toString())
+    const lamportPrice = sqrtStartPriceDecimal
+        .mul(sqrtStartPriceDecimal)
+        .div(new Decimal(2).pow(128))
+
+    // token price = lamport price * 10^(base_decimal - quote_decimal)
+    const tokenPrice = lamportPrice.mul(
+        new Decimal(10).pow(tokenBaseDecimal - tokenQuoteDecimal)
+    )
+
+    return tokenPrice
+}
 
 /**
  * Get the sqrt price from the price
@@ -39,8 +204,8 @@ import { pow } from '../math/safeMath'
  * @param tokenADecimal - The decimal of token A
  * @param tokenBDecimal - The decimal of token B
  * @returns The sqrt price
+ * price = (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
  */
-// Original formula: price = (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
 export const getSqrtPriceFromPrice = (
     price: string,
     tokenADecimal: number,
@@ -384,14 +549,14 @@ export const getSwapAmountWithBuffer = (
 }
 
 /**
- * Calculate the percentage of supply that should be allocated to initial liquidity
+ * Get the percentage of supply that should be allocated to initial liquidity
  * @param initialMarketCap - The initial market cap
  * @param migrationMarketCap - The migration market cap
  * @param lockedVesting - The locked vesting
  * @param totalTokenSupply - The total token supply
  * @returns The percentage of supply for initial liquidity
  */
-export const calculatePercentageSupplyOnMigration = (
+export const getPercentageSupplyOnMigration = (
     initialMarketCap: BN,
     migrationMarketCap: BN,
     lockedVesting: LockedVestingParameters,
@@ -429,7 +594,7 @@ export const calculatePercentageSupplyOnMigration = (
  * @param percentageSupplyOnMigration - The percentage of supply on migration
  * @returns The migration quote threshold
  */
-export const calculateMigrationQuoteThreshold = (
+export const getMigrationQuoteThreshold = (
     migrationMarketCap: BN,
     percentageSupplyOnMigration: number
 ): number => {
@@ -442,39 +607,6 @@ export const calculateMigrationQuoteThreshold = (
     return migrationMarketCapDecimal
         .mul(percentageDecimal)
         .div(new Decimal(100))
-        .toNumber()
-}
-
-/**
- * Convert a decimal to a BN
- * @param value - The value
- * @returns The BN
- */
-export function convertDecimalToBN(value: Decimal): BN {
-    return new BN(value.floor().toFixed())
-}
-
-/**
- * Converts basis points (bps) to a fee numerator
- * 1 bps = 0.01% = 0.0001 in decimal
- *
- * @param bps - The value in basis points [1-10_000]
- * @returns The equivalent fee numerator
- */
-export function bpsToFeeNumerator(bps: number): BN {
-    return new BN(bps * FEE_DENOMINATOR).divn(BASIS_POINT_MAX)
-}
-
-/**
- * Converts a fee numerator back to basis points (bps)
- *
- * @param feeNumerator - The fee numerator to convert
- * @returns The equivalent value in basis points [1-10_000]
- */
-export function feeNumeratorToBps(feeNumerator: BN): number {
-    return feeNumerator
-        .muln(BASIS_POINT_MAX)
-        .div(new BN(FEE_DENOMINATOR))
         .toNumber()
 }
 
@@ -559,28 +691,6 @@ export function getBaseFeeParams(
         reductionFactor,
         feeSchedulerMode,
     }
-}
-
-// Fee scheduler
-// Linear: cliffFeeNumerator - period * reductionFactor
-// Exponential: cliffFeeNumerator * (1 -reductionFactor/BASIS_POINT_MAX)^period
-export function getBaseFeeNumerator(
-    feeSchedulerMode: FeeSchedulerMode,
-    cliffFeeNumerator: BN,
-    period: BN,
-    reductionFactor: BN
-): BN {
-    let feeNumerator: BN
-    if (feeSchedulerMode == FeeSchedulerMode.Linear) {
-        feeNumerator = cliffFeeNumerator.sub(period.mul(reductionFactor))
-    } else {
-        const bps = reductionFactor.shln(OFFSET).div(new BN(BASIS_POINT_MAX))
-        const base = ONE_Q64.sub(bps)
-        const result = pow(base, period)
-        feeNumerator = cliffFeeNumerator.mul(result).shrn(OFFSET)
-    }
-
-    return feeNumerator
 }
 
 /**
@@ -668,103 +778,6 @@ export function getDynamicFeeParams(
 }
 
 /**
- * Calculate the reduction factor for the fee scheduler based on starting and ending Bps
- * @param startingFeeBps - The starting fee in bps
- * @param endingFeeBps - The ending fee in bps
- * @param feeSchedulerMode - Linear or Exponential mode
- * @param numberOfPeriod - Total number of periods (depends on activation type, if slot - 400ms, if timestamp - 100ms)
- * @returns The Fee Scheduler Params
- */
-export function calculateFeeScheduler(
-    startingFeeBps: number,
-    endingFeeBps: number,
-    feeSchedulerMode: FeeSchedulerMode,
-    numberOfPeriod: number,
-    totalDuration: number
-): {
-    cliffFeeNumerator: BN
-    numberOfPeriod: number
-    periodFrequency: BN
-    reductionFactor: BN
-    feeSchedulerMode: FeeSchedulerMode
-} {
-    if (startingFeeBps == endingFeeBps) {
-        if (numberOfPeriod != 0 || totalDuration != 0) {
-            throw new Error(
-                'numberOfPeriod and totalDuration must both be zero'
-            )
-        }
-
-        return {
-            cliffFeeNumerator: bpsToFeeNumerator(startingFeeBps),
-            numberOfPeriod: 0,
-            periodFrequency: new BN(0),
-            reductionFactor: new BN(0),
-            feeSchedulerMode: 0,
-        }
-    }
-
-    if (numberOfPeriod <= 0) {
-        throw new Error('Total periods must be greater than zero')
-    }
-
-    if (startingFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
-        throw new Error(
-            `startingFeeBps (${startingFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
-                new BN(MAX_FEE_NUMERATOR)
-            )} bps`
-        )
-    }
-
-    if (endingFeeBps > startingFeeBps) {
-        throw new Error(
-            'endingFeeBps must be less than or equal to startingFeeBps'
-        )
-    }
-
-    if (numberOfPeriod == 0 || totalDuration == 0) {
-        throw new Error(
-            'numberOfPeriod and totalDuration must both greater than zero'
-        )
-    }
-
-    // convert fee from bps to fee numerator
-    const cliffFeeNumerator = bpsToFeeNumerator(startingFeeBps)
-    const endingFeeNumerator = bpsToFeeNumerator(endingFeeBps)
-    const periodFrequency = new BN(totalDuration / numberOfPeriod)
-
-    if (feeSchedulerMode === FeeSchedulerMode.Linear) {
-        // for linear mode: fee = cliff_fee_numerator - (period * reduction_factor)
-        const totalReduction = cliffFeeNumerator.sub(endingFeeNumerator)
-        const reductionFactor = totalReduction.div(new BN(numberOfPeriod))
-
-        return {
-            cliffFeeNumerator,
-            numberOfPeriod,
-            periodFrequency: new BN(periodFrequency),
-            reductionFactor,
-            feeSchedulerMode: FeeSchedulerMode.Linear,
-        }
-    } else {
-        // for exponential mode: fee = cliff_fee_numerator * (1 - reduction_factor/10_000)^period
-        const decayRate = Math.pow(
-            endingFeeNumerator.toNumber() / cliffFeeNumerator.toNumber(),
-            1 / numberOfPeriod
-        )
-        // convert decay rate to reduction factor (1 - decayRate) * 10000
-        const reductionFactor = new BN(Math.floor((1 - decayRate) * 10000))
-
-        return {
-            cliffFeeNumerator,
-            numberOfPeriod,
-            periodFrequency: new BN(periodFrequency),
-            reductionFactor,
-            feeSchedulerMode: FeeSchedulerMode.Exponential,
-        }
-    }
-}
-
-/**
  * Calculate the locked vesting parameters
  * @param totalVestingAmount - The total vesting amount
  * @param numberOfPeriod - The number of periods
@@ -774,7 +787,7 @@ export function calculateFeeScheduler(
  * @param tokenBaseDecimal - The decimal of the base token
  * @returns The locked vesting parameters
  */
-export function calculateLockedVesting(
+export function getLockedVesting(
     totalVestingAmount: number,
     numberOfPeriod: number,
     amountPerPeriod: number,
@@ -856,30 +869,4 @@ export const getTwoCurve = (
             },
         ],
     }
-}
-
-/**
- * Calculate the initial price from the sqrt start price
- * @param sqrtStartPrice - The sqrt start price
- * @param tokenBaseDecimal - The base token decimal
- * @param tokenQuoteDecimal - The quote token decimal
- * @returns The initial price
- */
-export function calculateInitialPriceFromSqrtStartPrice(
-    sqrtStartPrice: BN,
-    tokenBaseDecimal: TokenDecimal,
-    tokenQuoteDecimal: TokenDecimal
-): Decimal {
-    // lamport price = sqrtStartPrice * sqrtStartPrice / 2^128
-    const sqrtStartPriceDecimal = new Decimal(sqrtStartPrice.toString())
-    const lamportPrice = sqrtStartPriceDecimal
-        .mul(sqrtStartPriceDecimal)
-        .div(new Decimal(2).pow(128))
-
-    // token price = lamport price * 10^(base_decimal - quote_decimal)
-    const tokenPrice = lamportPrice.mul(
-        new Decimal(10).pow(tokenBaseDecimal - tokenQuoteDecimal)
-    )
-
-    return tokenPrice
 }

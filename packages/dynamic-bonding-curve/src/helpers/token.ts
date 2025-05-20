@@ -13,10 +13,12 @@ import {
     getAssociatedTokenAddressSync,
     getMint,
     NATIVE_MINT,
+    TOKEN_2022_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
     TokenAccountNotFoundError,
     TokenInvalidAccountOwnerError,
 } from '@solana/spl-token'
+import { TokenType } from '../types'
 
 /**
  * Get or create an ATA instruction
@@ -175,4 +177,15 @@ export async function getTokenDecimals(
         tokenProgram
     )
     return mintInfo.decimals
+}
+
+/**
+ * Get the token program for a given token type
+ * @param tokenType - The token type
+ * @returns The token program
+ */
+export function getTokenProgram(tokenType: TokenType): PublicKey {
+    return tokenType === TokenType.SPL
+        ? TOKEN_PROGRAM_ID
+        : TOKEN_2022_PROGRAM_ID
 }

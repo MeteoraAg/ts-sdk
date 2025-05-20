@@ -16,12 +16,9 @@ import {
     getMigrationBaseToken,
     getMigrationThresholdPrice,
     getSwapAmountWithBuffer,
-} from './common'
-import {
     getTotalTokenSupply,
-    isDefaultLockedVesting,
-    isNativeSol,
-} from './utils'
+} from './common'
+import { isDefaultLockedVesting, isNativeSol } from './utils'
 
 /**
  * Validate the pool fees

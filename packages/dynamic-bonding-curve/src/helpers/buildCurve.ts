@@ -15,18 +15,18 @@ import {
     getTotalVestingAmount,
     getFirstCurve,
     getTotalSupplyFromCurve,
-    calculatePercentageSupplyOnMigration,
-    calculateMigrationQuoteThreshold,
+    getPercentageSupplyOnMigration,
+    getMigrationQuoteThreshold,
     getSqrtPriceFromMarketCap,
-    convertDecimalToBN,
     getBaseTokenForSwap,
     getSwapAmountWithBuffer,
-    bpsToFeeNumerator,
     getDynamicFeeParams,
     getMinBaseFeeBps,
     getTwoCurve,
+    getBaseFeeParams,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
+import { bpsToFeeNumerator, convertDecimalToBN } from './utils'
 
 /**
  * Build a custom constant product curve
@@ -200,14 +200,14 @@ export function buildCurveWithMarketCap(
         totalTokenSupply,
     } = buildCurveWithMarketCapParam
 
-    const percentageSupplyOnMigration = calculatePercentageSupplyOnMigration(
+    const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
         new BN(initialMarketCap),
         new BN(migrationMarketCap),
         lockedVesting,
         new BN(totalTokenSupply)
     )
 
-    const migrationQuoteThreshold = calculateMigrationQuoteThreshold(
+    const migrationQuoteThreshold = getMigrationQuoteThreshold(
         new BN(migrationMarketCap),
         percentageSupplyOnMigration
     )
