@@ -621,13 +621,13 @@ export const getMigrationQuoteThreshold = (
  * @returns {BaseFee}
  */
 export function getBaseFeeParams(
-    maxBaseFeeBps: number,
-    minBaseFeeBps: number,
+    startingBaseFeeBps: number,
+    endingBaseFeeBps: number,
     feeSchedulerMode: FeeSchedulerMode,
     numberOfPeriod: number,
     totalDuration: number
 ): BaseFee {
-    if (maxBaseFeeBps == minBaseFeeBps) {
+    if (startingBaseFeeBps == endingBaseFeeBps) {
         if (numberOfPeriod != 0 || totalDuration != 0) {
             throw new Error(
                 'numberOfPeriod and totalDuration must both be zero'
@@ -635,7 +635,7 @@ export function getBaseFeeParams(
         }
 
         return {
-            cliffFeeNumerator: bpsToFeeNumerator(maxBaseFeeBps),
+            cliffFeeNumerator: bpsToFeeNumerator(startingBaseFeeBps),
             numberOfPeriod: 0,
             periodFrequency: new BN(0),
             reductionFactor: new BN(0),
@@ -647,17 +647,17 @@ export function getBaseFeeParams(
         throw new Error('Total periods must be greater than zero')
     }
 
-    if (maxBaseFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
+    if (startingBaseFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
         throw new Error(
-            `maxBaseFeeBps (${maxBaseFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+            `startingBaseFeeBps (${startingBaseFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
                 new BN(MAX_FEE_NUMERATOR)
             )} bps`
         )
     }
 
-    if (minBaseFeeBps > maxBaseFeeBps) {
+    if (endingBaseFeeBps > startingBaseFeeBps) {
         throw new Error(
-            'minBaseFee bps must be less than or equal to maxBaseFee bps'
+            'endingBaseFeeBps bps must be less than or equal to startingBaseFeeBps bps'
         )
     }
 
@@ -667,9 +667,9 @@ export function getBaseFeeParams(
         )
     }
 
-    const maxBaseFeeNumerator = bpsToFeeNumerator(maxBaseFeeBps)
+    const maxBaseFeeNumerator = bpsToFeeNumerator(startingBaseFeeBps)
 
-    const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFeeBps)
+    const minBaseFeeNumerator = bpsToFeeNumerator(endingBaseFeeBps)
 
     const periodFrequency = new BN(totalDuration / numberOfPeriod)
 
@@ -787,12 +787,12 @@ export function getDynamicFeeParams(
  * @param tokenBaseDecimal - The decimal of the base token
  * @returns The locked vesting parameters
  */
-export function getLockedVesting(
+export function getLockedVestingParams(
     totalVestingAmount: number,
+    totalVestingDuration: number,
     numberOfPeriod: number,
     amountPerPeriod: number,
-    cliffDurationFromMigrationTime: number = 0,
-    frequency: number = 1,
+    cliffDurationFromMigrationTime: number,
     tokenBaseDecimal: TokenDecimal
 ): {
     amountPerPeriod: BN
@@ -801,6 +801,26 @@ export function getLockedVesting(
     numberOfPeriod: BN
     cliffUnlockAmount: BN
 } {
+    if (totalVestingAmount == 0) {
+        return {
+            amountPerPeriod: new BN(0),
+            cliffDurationFromMigrationTime: new BN(0),
+            frequency: new BN(0),
+            numberOfPeriod: new BN(0),
+            cliffUnlockAmount: new BN(0),
+        }
+    }
+
+    if (numberOfPeriod <= 0) {
+        throw new Error('Total periods must be greater than zero')
+    }
+
+    if (numberOfPeriod == 0 || totalVestingDuration == 0) {
+        throw new Error(
+            'numberOfPeriod and totalVestingDuration must both greater than zero'
+        )
+    }
+
     // total_locked_vesting_amount = cliff_unlock_amount + (amount_per_period * number_of_period)
     const totalPeriodicAmount = amountPerPeriod * numberOfPeriod
     const cliffUnlockAmount = totalVestingAmount - totalPeriodicAmount
@@ -808,7 +828,7 @@ export function getLockedVesting(
     return {
         amountPerPeriod: new BN(amountPerPeriod * 10 ** tokenBaseDecimal),
         cliffDurationFromMigrationTime: new BN(cliffDurationFromMigrationTime),
-        frequency: new BN(frequency),
+        frequency: new BN(totalVestingDuration / numberOfPeriod),
         numberOfPeriod: new BN(numberOfPeriod),
         cliffUnlockAmount: new BN(cliffUnlockAmount * 10 ** tokenBaseDecimal),
     }

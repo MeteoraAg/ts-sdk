@@ -8,7 +8,7 @@ import {
     BuildCurveWithCreatorFirstBuyParam,
     BuildCurveWithTwoSegmentsParam,
 } from '../types'
-import { BASIS_POINT_MAX, FEE_DENOMINATOR, MAX_SQRT_PRICE } from '../constants'
+import { MAX_SQRT_PRICE } from '../constants'
 import {
     getSqrtPriceFromPrice,
     getMigrationBaseToken,
@@ -42,7 +42,6 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         tokenBaseDecimal,
         tokenQuoteDecimal,
         lockedVesting,
-        baseFeeBps,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -57,11 +56,20 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     } = buildCurveParam
 
     const {
+        startingFeeBps,
+        endingFeeBps,
         numberOfPeriod,
-        reductionFactor,
-        periodFrequency,
         feeSchedulerMode,
+        totalDuration,
     } = buildCurveParam.feeSchedulerParam
+
+    const baseFeeParams = getBaseFeeParams(
+        startingFeeBps,
+        endingFeeBps,
+        numberOfPeriod,
+        feeSchedulerMode,
+        totalDuration
+    )
 
     const migrationBaseSupply = new BN(totalTokenSupply)
         .mul(new BN(percentageSupplyOnMigration))
@@ -133,31 +141,13 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         })
     }
 
-    // Calculate minimum base fee for dynamic fee calculation
-    let minBaseFeeBps = baseFeeBps
-    if (periodFrequency > 0) {
-        const cliffFeeNumerator =
-            (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-
-        minBaseFeeBps = getMinBaseFeeBps(
-            cliffFeeNumerator,
-            numberOfPeriod,
-            reductionFactor,
-            feeSchedulerMode
-        )
-    }
-
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                cliffFeeNumerator: bpsToFeeNumerator(baseFeeBps),
-                numberOfPeriod: numberOfPeriod,
-                reductionFactor: new BN(reductionFactor),
-                periodFrequency: new BN(periodFrequency),
-                feeSchedulerMode: feeSchedulerMode,
+                ...baseFeeParams,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(minBaseFeeBps)
+                ? getDynamicFeeParams(endingFeeBps)
                 : null,
         },
         activationType: activationType,
@@ -245,17 +235,25 @@ export function buildCurveWithTwoSegments(
         partnerLockedLpPercentage,
         creatorLockedLpPercentage,
         activationType,
-        baseFeeBps,
         dynamicFeeEnabled,
         migrationFeeOption,
     } = buildCurveWithTwoSegmentsParam
 
     const {
+        startingFeeBps,
+        endingFeeBps,
         numberOfPeriod,
-        reductionFactor,
-        periodFrequency,
         feeSchedulerMode,
+        totalDuration,
     } = buildCurveWithTwoSegmentsParam.feeSchedulerParam
+
+    const baseFeeParams = getBaseFeeParams(
+        startingFeeBps,
+        endingFeeBps,
+        numberOfPeriod,
+        feeSchedulerMode,
+        totalDuration
+    )
 
     let migrationBaseSupply = new BN(totalTokenSupply)
         .mul(new BN(percentageSupplyOnMigration))
@@ -327,31 +325,13 @@ export function buildCurveWithTwoSegments(
         }
     }
 
-    // Calculate minimum base fee for dynamic fee calculation
-    let minBaseFeeBps = baseFeeBps
-    if (periodFrequency > 0) {
-        const cliffFeeNumerator =
-            (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-
-        minBaseFeeBps = getMinBaseFeeBps(
-            cliffFeeNumerator,
-            numberOfPeriod,
-            reductionFactor,
-            feeSchedulerMode
-        )
-    }
-
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                cliffFeeNumerator: bpsToFeeNumerator(baseFeeBps),
-                numberOfPeriod: numberOfPeriod,
-                reductionFactor: new BN(reductionFactor),
-                periodFrequency: new BN(periodFrequency),
-                feeSchedulerMode: feeSchedulerMode,
+                ...baseFeeParams,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(minBaseFeeBps)
+                ? getDynamicFeeParams(endingFeeBps)
                 : null,
         },
         activationType,
@@ -393,7 +373,6 @@ export function buildCurveWithLiquidityWeights(
         tokenBaseDecimal,
         tokenQuoteDecimal,
         lockedVesting,
-        baseFeeBps,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -411,11 +390,20 @@ export function buildCurveWithLiquidityWeights(
     } = buildCurveWithLiquidityWeightsParam
 
     const {
+        startingFeeBps,
+        endingFeeBps,
         numberOfPeriod,
-        reductionFactor,
-        periodFrequency,
         feeSchedulerMode,
+        totalDuration,
     } = buildCurveWithLiquidityWeightsParam.feeSchedulerParam
+
+    const baseFeeParams = getBaseFeeParams(
+        startingFeeBps,
+        endingFeeBps,
+        numberOfPeriod,
+        feeSchedulerMode,
+        totalDuration
+    )
 
     // 1. finding Pmax and Pmin
     let pMin = getSqrtPriceFromMarketCap(
@@ -516,31 +504,13 @@ export function buildCurveWithLiquidityWeights(
         }
     }
 
-    // Calculate minimum base fee for dynamic fee calculation
-    let minBaseFeeBps = baseFeeBps
-    if (periodFrequency > 0) {
-        const cliffFeeNumerator =
-            (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-
-        minBaseFeeBps = getMinBaseFeeBps(
-            cliffFeeNumerator,
-            numberOfPeriod,
-            reductionFactor,
-            feeSchedulerMode
-        )
-    }
-
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                cliffFeeNumerator: bpsToFeeNumerator(baseFeeBps),
-                numberOfPeriod: numberOfPeriod,
-                reductionFactor: new BN(reductionFactor),
-                periodFrequency: new BN(periodFrequency),
-                feeSchedulerMode: feeSchedulerMode,
+                ...baseFeeParams,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(minBaseFeeBps)
+                ? getDynamicFeeParams(endingFeeBps)
                 : null,
         },
         activationType: activationType,
@@ -582,7 +552,6 @@ export function buildCurveWithCreatorFirstBuy(
         tokenBaseDecimal,
         tokenQuoteDecimal,
         lockedVesting,
-        baseFeeBps,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -603,11 +572,20 @@ export function buildCurveWithCreatorFirstBuy(
         buildCurveWithCreatorFirstBuyParam.creatorFirstBuyOption
 
     const {
+        startingFeeBps,
+        endingFeeBps,
         numberOfPeriod,
-        reductionFactor,
-        periodFrequency,
         feeSchedulerMode,
+        totalDuration,
     } = buildCurveWithCreatorFirstBuyParam.feeSchedulerParam
+
+    const baseFeeParams = getBaseFeeParams(
+        startingFeeBps,
+        endingFeeBps,
+        numberOfPeriod,
+        feeSchedulerMode,
+        totalDuration
+    )
 
     // find Pmax and Pmin
     let pMin = getSqrtPriceFromMarketCap(
@@ -627,7 +605,7 @@ export function buildCurveWithCreatorFirstBuy(
     let firstBuyQuoteAmount = new BN(quoteAmount * 10 ** tokenQuoteDecimal)
     let firstBuyBaseAmount = new BN(baseAmount * 10 ** tokenBaseDecimal)
 
-    const cliffFeeNumerator = bpsToFeeNumerator(baseFeeBps)
+    const cliffFeeNumerator = bpsToFeeNumerator(startingFeeBps)
     let quoteAmountAfterFee = firstBuyQuoteAmount
         .mul(new BN(1_000_000_000).sub(cliffFeeNumerator))
         .div(new BN(1_000_000_000))
@@ -735,31 +713,13 @@ export function buildCurveWithCreatorFirstBuy(
         }
     }
 
-    // Calculate minimum base fee for dynamic fee calculation
-    let minBaseFeeBps = baseFeeBps
-    if (periodFrequency > 0) {
-        const cliffFeeNumerator =
-            (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
-
-        minBaseFeeBps = getMinBaseFeeBps(
-            cliffFeeNumerator,
-            numberOfPeriod,
-            reductionFactor,
-            feeSchedulerMode
-        )
-    }
-
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                cliffFeeNumerator,
-                numberOfPeriod: 0,
-                reductionFactor: new BN(0),
-                periodFrequency: new BN(0),
-                feeSchedulerMode: 0,
+                ...baseFeeParams,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(minBaseFeeBps)
+                ? getDynamicFeeParams(endingFeeBps)
                 : null,
         },
         activationType,
