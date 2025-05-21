@@ -65,8 +65,8 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     const baseFeeParams = getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
-        numberOfPeriod,
         feeSchedulerMode,
+        numberOfPeriod,
         totalDuration
     )
 
@@ -223,11 +223,15 @@ export function buildCurveWithMarketCap(
         tokenBaseDecimal
     )
 
+    const totalSupply = new BN(totalTokenSupply).mul(
+        new BN(10).pow(new BN(tokenBaseDecimal))
+    )
+
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
         new BN(initialMarketCap),
         new BN(migrationMarketCap),
         lockedVesting,
-        new BN(totalTokenSupply * 10 ** tokenBaseDecimal)
+        totalSupply
     )
 
     const migrationQuoteThreshold = getMigrationQuoteThreshold(
@@ -323,6 +327,7 @@ export function buildCurveWithTwoSegments(
     let migrationPrice = new Decimal(migrationQuoteThreshold.toString()).div(
         new Decimal(migrationBaseSupply.toString())
     )
+
     let migrateSqrtPrice = getSqrtPriceFromPrice(
         migrationPrice.toString(),
         tokenBaseDecimal,
@@ -350,16 +355,19 @@ export function buildCurveWithTwoSegments(
         tokenQuoteDecimal
     )
 
+    // instantiate midSqrtPriceDecimal1
     let midSqrtPriceDecimal1 = new Decimal(migrateSqrtPrice.toString()).mul(
         new Decimal(initialSqrtPrice.toString()).sqrt()
     )
     let midSqrtPrice1 = new BN(midSqrtPriceDecimal1.floor().toFixed())
 
+    // instantiate midSqrtPriceDecimal2
     let midSqrtPriceDecimal2 = new Decimal(migrateSqrtPrice.toString())
         .pow(new Decimal(3))
         .mul(new Decimal(initialSqrtPrice.toString()).pow(0.25))
     let midSqrtPrice2 = new BN(midSqrtPriceDecimal2.floor().toFixed())
 
+    // instantiate midSqrtPriceDecimal3
     let midSqrtPriceDecimal3 = new Decimal(migrateSqrtPrice.toString()).mul(
         new Decimal(initialSqrtPrice.toString()).pow(new Decimal(3)).pow(0.25)
     )

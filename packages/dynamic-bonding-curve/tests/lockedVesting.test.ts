@@ -4,6 +4,7 @@ import {
     TokenDecimal,
 } from '../src'
 import { convertBNToDecimal } from './utils/common'
+import { expect, test, describe } from 'bun:test'
 
 describe('calculateLockedVesting tests', () => {
     test('calculate locked vesting parameters 1', () => {
