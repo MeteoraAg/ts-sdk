@@ -249,12 +249,20 @@ export type FeeSchedulerParams = {
     totalDuration: number
 }
 
+export type LockedVestingParams = {
+    totalLockedVestingAmount: number
+    amountPerVestingPeriod: number
+    numberOfVestingPeriod: number
+    totalVestingDuration: number
+    cliffDurationFromMigrationTime: number
+}
+
 export type BuildCurveBaseParam = {
     totalTokenSupply: number
     migrationOption: MigrationOption
     tokenBaseDecimal: TokenDecimal
     tokenQuoteDecimal: TokenDecimal
-    lockedVesting: LockedVestingParameters
+    lockedVestingParam: LockedVestingParams
     feeSchedulerParam: FeeSchedulerParams
     dynamicFeeEnabled: boolean
     activationType: ActivationType

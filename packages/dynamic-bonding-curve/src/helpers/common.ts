@@ -788,10 +788,10 @@ export function getDynamicFeeParams(
  * @returns The locked vesting parameters
  */
 export function getLockedVestingParams(
-    totalVestingAmount: number,
+    totalLockedVestingAmount: number,
+    numberOfVestingPeriod: number,
+    amountPerVestingPeriod: number,
     totalVestingDuration: number,
-    numberOfPeriod: number,
-    amountPerPeriod: number,
     cliffDurationFromMigrationTime: number,
     tokenBaseDecimal: TokenDecimal
 ): {
@@ -801,7 +801,7 @@ export function getLockedVestingParams(
     numberOfPeriod: BN
     cliffUnlockAmount: BN
 } {
-    if (totalVestingAmount == 0) {
+    if (totalLockedVestingAmount == 0) {
         return {
             amountPerPeriod: new BN(0),
             cliffDurationFromMigrationTime: new BN(0),
@@ -811,26 +811,30 @@ export function getLockedVestingParams(
         }
     }
 
-    if (numberOfPeriod <= 0) {
+    if (numberOfVestingPeriod <= 0) {
         throw new Error('Total periods must be greater than zero')
     }
 
-    if (numberOfPeriod == 0 || totalVestingDuration == 0) {
+    if (numberOfVestingPeriod == 0 || totalVestingDuration == 0) {
         throw new Error(
             'numberOfPeriod and totalVestingDuration must both greater than zero'
         )
     }
 
     // total_locked_vesting_amount = cliff_unlock_amount + (amount_per_period * number_of_period)
-    const totalPeriodicAmount = amountPerPeriod * numberOfPeriod
-    const cliffUnlockAmount = totalVestingAmount - totalPeriodicAmount
+    const totalPeriodicAmount = amountPerVestingPeriod * numberOfVestingPeriod
+    const cliffUnlockAmount = totalLockedVestingAmount - totalPeriodicAmount
 
     return {
-        amountPerPeriod: new BN(amountPerPeriod * 10 ** tokenBaseDecimal),
+        amountPerPeriod: new BN(amountPerVestingPeriod.toString()).mul(
+            new BN(10).pow(new BN(tokenBaseDecimal))
+        ),
         cliffDurationFromMigrationTime: new BN(cliffDurationFromMigrationTime),
-        frequency: new BN(totalVestingDuration / numberOfPeriod),
-        numberOfPeriod: new BN(numberOfPeriod),
-        cliffUnlockAmount: new BN(cliffUnlockAmount * 10 ** tokenBaseDecimal),
+        frequency: new BN(totalVestingDuration / numberOfVestingPeriod),
+        numberOfPeriod: new BN(numberOfVestingPeriod),
+        cliffUnlockAmount: new BN(cliffUnlockAmount.toString()).mul(
+            new BN(10).pow(new BN(tokenBaseDecimal))
+        ),
     }
 }
 
@@ -844,15 +848,11 @@ export function getLockedVestingParams(
  */
 export const getTwoCurve = (
     migrationSqrtPrice: BN,
+    midSqrtPrice: BN,
     initialSqrtPrice: BN,
     swapAmount: BN,
     migrationQuoteThreshold: BN
 ) => {
-    let midSqrtPriceDecimal = new Decimal(migrationSqrtPrice.toString())
-        .mul(new Decimal(initialSqrtPrice.toString()))
-        .sqrt()
-    let midSqrtPrice = new BN(midSqrtPriceDecimal.floor().toFixed())
-
     let p0 = new Decimal(initialSqrtPrice.toString())
     let p1 = new Decimal(midSqrtPrice.toString())
     let p2 = new Decimal(migrationSqrtPrice.toString())
@@ -876,7 +876,17 @@ export const getTwoCurve = (
         .mul(a2)
         .sub(c2.mul(a1))
         .div(b1.mul(a2).sub(b2.mul(a1)))
+
+    if (l0.isNeg() || l1.isNeg()) {
+        return {
+            isOk: false,
+            sqrtStartPrice: new BN(0),
+            curve: [],
+        }
+    }
+
     return {
+        isOk: true,
         sqrtStartPrice: initialSqrtPrice,
         curve: [
             {

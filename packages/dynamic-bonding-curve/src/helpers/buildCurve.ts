@@ -21,9 +21,9 @@ import {
     getBaseTokenForSwap,
     getSwapAmountWithBuffer,
     getDynamicFeeParams,
-    getMinBaseFeeBps,
     getTwoCurve,
     getBaseFeeParams,
+    getLockedVestingParams,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
 import { bpsToFeeNumerator, convertDecimalToBN } from './utils'
@@ -41,7 +41,6 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
-        lockedVesting,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -69,6 +68,23 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         numberOfPeriod,
         feeSchedulerMode,
         totalDuration
+    )
+
+    const {
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+    } = buildCurveParam.lockedVestingParam
+
+    const lockedVesting = getLockedVestingParams(
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+        tokenBaseDecimal
     )
 
     const migrationBaseSupply = new BN(totalTokenSupply)
@@ -186,15 +202,32 @@ export function buildCurveWithMarketCap(
     const {
         initialMarketCap,
         migrationMarketCap,
-        lockedVesting,
         totalTokenSupply,
+        tokenBaseDecimal,
     } = buildCurveWithMarketCapParam
+
+    const {
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+    } = buildCurveWithMarketCapParam.lockedVestingParam
+
+    const lockedVesting = getLockedVestingParams(
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+        tokenBaseDecimal
+    )
 
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
         new BN(initialMarketCap),
         new BN(migrationMarketCap),
         lockedVesting,
-        new BN(totalTokenSupply)
+        new BN(totalTokenSupply * 10 ** tokenBaseDecimal)
     )
 
     const migrationQuoteThreshold = getMigrationQuoteThreshold(
@@ -227,7 +260,6 @@ export function buildCurveWithTwoSegments(
         tokenQuoteDecimal,
         creatorTradingFeePercentage,
         collectFeeMode,
-        lockedVesting,
         leftover,
         tokenType,
         partnerLpPercentage,
@@ -253,6 +285,23 @@ export function buildCurveWithTwoSegments(
         numberOfPeriod,
         feeSchedulerMode,
         totalDuration
+    )
+
+    const {
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+    } = buildCurveWithTwoSegmentsParam.lockedVestingParam
+
+    const lockedVesting = getLockedVestingParams(
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+        tokenBaseDecimal
     )
 
     let migrationBaseSupply = new BN(totalTokenSupply)
@@ -301,12 +350,38 @@ export function buildCurveWithTwoSegments(
         tokenQuoteDecimal
     )
 
-    let { sqrtStartPrice, curve } = getTwoCurve(
-        migrateSqrtPrice,
-        initialSqrtPrice,
-        swapAmount,
-        migrationQuoteThresholdWithDecimals
+    let midSqrtPriceDecimal1 = new Decimal(migrateSqrtPrice.toString()).mul(
+        new Decimal(initialSqrtPrice.toString()).sqrt()
     )
+    let midSqrtPrice1 = new BN(midSqrtPriceDecimal1.floor().toFixed())
+
+    let midSqrtPriceDecimal2 = new Decimal(migrateSqrtPrice.toString())
+        .pow(new Decimal(3))
+        .mul(new Decimal(initialSqrtPrice.toString()).pow(0.25))
+    let midSqrtPrice2 = new BN(midSqrtPriceDecimal2.floor().toFixed())
+
+    let midSqrtPriceDecimal3 = new Decimal(migrateSqrtPrice.toString()).mul(
+        new Decimal(initialSqrtPrice.toString()).pow(new Decimal(3)).pow(0.25)
+    )
+    let midSqrtPrice3 = new BN(midSqrtPriceDecimal3.floor().toFixed())
+
+    let midPrices = [midSqrtPrice1, midSqrtPrice2, midSqrtPrice3]
+    let sqrtStartPrice = new BN(0)
+    let curve: { sqrtPrice: BN; liquidity: BN }[] = []
+    for (let i = 0; i < midPrices.length; i++) {
+        const result = getTwoCurve(
+            migrateSqrtPrice,
+            midPrices[i],
+            initialSqrtPrice,
+            swapAmount,
+            migrationQuoteThresholdWithDecimals
+        )
+        if (result.isOk) {
+            curve = result.curve
+            sqrtStartPrice = result.sqrtStartPrice
+            break
+        }
+    }
 
     let totalDynamicSupply = getTotalSupplyFromCurve(
         migrationQuoteThresholdWithDecimals,
@@ -372,7 +447,6 @@ export function buildCurveWithLiquidityWeights(
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
-        lockedVesting,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -403,6 +477,23 @@ export function buildCurveWithLiquidityWeights(
         numberOfPeriod,
         feeSchedulerMode,
         totalDuration
+    )
+
+    const {
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+    } = buildCurveWithLiquidityWeightsParam.lockedVestingParam
+
+    const lockedVesting = getLockedVestingParams(
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+        tokenBaseDecimal
     )
 
     // 1. finding Pmax and Pmin
@@ -551,7 +642,6 @@ export function buildCurveWithCreatorFirstBuy(
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
-        lockedVesting,
         dynamicFeeEnabled,
         activationType,
         collectFeeMode,
@@ -585,6 +675,23 @@ export function buildCurveWithCreatorFirstBuy(
         numberOfPeriod,
         feeSchedulerMode,
         totalDuration
+    )
+
+    const {
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+    } = buildCurveWithCreatorFirstBuyParam.lockedVestingParam
+
+    const lockedVesting = getLockedVestingParams(
+        totalLockedVestingAmount,
+        numberOfVestingPeriod,
+        amountPerVestingPeriod,
+        totalVestingDuration,
+        cliffDurationFromMigrationTime,
+        tokenBaseDecimal
     )
 
     // find Pmax and Pmin
