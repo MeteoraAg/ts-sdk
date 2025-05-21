@@ -4,6 +4,7 @@ import {
     FeeSchedulerMode,
     getMinBaseFeeBps,
 } from '../src'
+import { expect, test, describe } from 'bun:test'
 
 describe('getMinBaseFeeBps tests', () => {
     test('linear fee scheduler - should calculate minimum fee correctly', () => {

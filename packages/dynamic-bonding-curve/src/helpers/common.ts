@@ -639,7 +639,7 @@ export function getBaseFeeParams(
             numberOfPeriod: 0,
             periodFrequency: new BN(0),
             reductionFactor: new BN(0),
-            feeSchedulerMode: 0,
+            feeSchedulerMode: FeeSchedulerMode.Linear,
         }
     }
 
