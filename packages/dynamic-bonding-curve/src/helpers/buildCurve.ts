@@ -8,7 +8,7 @@ import {
     BuildCurveWithCreatorFirstBuyParam,
     BuildCurveWithTwoSegmentsParam,
 } from '../types'
-import { MAX_SQRT_PRICE } from '../constants'
+import { FEE_DENOMINATOR, MAX_SQRT_PRICE } from '../constants'
 import {
     getSqrtPriceFromPrice,
     getMigrationBaseToken,
@@ -607,8 +607,8 @@ export function buildCurveWithCreatorFirstBuy(
 
     const cliffFeeNumerator = bpsToFeeNumerator(startingFeeBps)
     let quoteAmountAfterFee = firstBuyQuoteAmount
-        .mul(new BN(1_000_000_000).sub(cliffFeeNumerator))
-        .div(new BN(1_000_000_000))
+        .mul(new BN(FEE_DENOMINATOR).sub(cliffFeeNumerator))
+        .div(new BN(FEE_DENOMINATOR))
 
     let p0 = quoteAmountAfterFee.shln(128).div(firstBuyBaseAmount).div(pMin)
     let l0 = quoteAmountAfterFee.shln(128).div(pMin.sub(p0))
