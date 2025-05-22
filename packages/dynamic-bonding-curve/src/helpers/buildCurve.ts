@@ -359,9 +359,9 @@ export function buildCurveWithTwoSegments(
     )
 
     // instantiate midSqrtPriceDecimal1
-    let midSqrtPriceDecimal1 = new Decimal(migrateSqrtPrice.toString()).mul(
-        new Decimal(initialSqrtPrice.toString()).sqrt()
-    )
+    let midSqrtPriceDecimal1 = new Decimal(migrateSqrtPrice.toString())
+        .mul(new Decimal(initialSqrtPrice.toString()))
+        .sqrt()
     let midSqrtPrice1 = new BN(midSqrtPriceDecimal1.floor().toFixed())
 
     // instantiate midSqrtPriceDecimal2
