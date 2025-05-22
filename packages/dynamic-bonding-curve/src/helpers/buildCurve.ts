@@ -286,8 +286,8 @@ export function buildCurveWithTwoSegments(
     const baseFeeParams = getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
-        numberOfPeriod,
         feeSchedulerMode,
+        numberOfPeriod,
         totalDuration
     )
 
@@ -342,7 +342,10 @@ export function buildCurveWithTwoSegments(
 
     let totalVestingAmount = getTotalVestingAmount(lockedVesting)
 
-    let totalLeftover = new BN(leftover * 10 ** tokenBaseDecimal)
+    let totalLeftover = new BN(leftover).mul(
+        new BN(10).pow(new BN(tokenBaseDecimal))
+    )
+
     let swapAmount = totalSupply
         .sub(migrationBaseAmount)
         .sub(totalVestingAmount)
@@ -482,8 +485,8 @@ export function buildCurveWithLiquidityWeights(
     const baseFeeParams = getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
-        numberOfPeriod,
         feeSchedulerMode,
+        numberOfPeriod,
         totalDuration
     )
 
@@ -680,8 +683,8 @@ export function buildCurveWithCreatorFirstBuy(
     const baseFeeParams = getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
-        numberOfPeriod,
         feeSchedulerMode,
+        numberOfPeriod,
         totalDuration
     )
 
