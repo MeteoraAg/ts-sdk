@@ -43,36 +43,62 @@ All notable changes to the Dynamic Bonding Curve SDK will be documented in this 
 
 ## [1.1.4] - 2025-05-09
 
-### Release Notes
+### Added
 
-#### Feature Changes
+- New function: `buildCurveGraphAndCreateConfig`
+- Added `leftover` parameter to curve building functions
 
-- feat: added `buildCurveGraphAndCreateConfig` function
-- feat: added `leftover` parameter to `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions
+### Changed
 
-#### Breaking Changes
+- Updated fee claiming functions to support custom receivers
 
-- `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions now require a `leftover` parameter.
-- `buildCurveGraphAndCreateConfig` uses liquidityWeights[] instead of kFactor now.
+### Breaking Changes
+
+- `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` now require `leftover` parameter
+- `buildCurveGraphAndCreateConfig` uses `liquidityWeights[]` instead of `kFactor`
 - Added receiver option in `claimPartnerTradingFee` and `claimCreatorTradingFee`
 
-## [1.1.5] - 2025-05-19
+## [1.1.3] - 2025-05-07
 
-### Release Notes
+### Changed
 
-#### Feature Changes
+- Updated `buildCurveGraphAndCreateConfig` to use `liquidityWeights[]` instead of `kFactor`
+- Modified dynamic fee calculation to be 20% of minimum base fee
+- Changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
 
-- feat: removed `buildCurveAndCreateConfig`, `buildCurveAndCreateConfigByMarketCap`, `buildCurveGraphAndCreateConfig` functions
-- feat: added `buildCurveWithTwoSegments` and `buildCurveWithCreatorFirstBuy` functions
-- fix: update `docs.md` with the latest changes
-- feat: added `getPoolByBaseMint` function
-- chore: clean up the code
-- feat: added `tempWSolAcc` param to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
-- feat: added `calculateInitialPriceFromSqrtStartPrice`, `calculateFeeScheduler` and `calculateLockedVesting` functions
-- fix: reduced client-side filtering in `getPoolsQuoteFeesByConfig` and `getPoolsBaseFeesByConfig`
-- feat: removed `getTokenDecimal` state function from client.state
+### Added
 
-#### Breaking Changes
+- Payer option to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
 
-- `buildCurveAndCreateConfig`, `buildCurveAndCreateConfigByMarketCap`, `buildCurveGraphAndCreateConfig` functions are deprecated. In order to build and create curve config, use the helper functions (`buildCurve`, `buildCurveWithMarketCap`, `buildCurveWithTwoSegments`, `buildCurveWithLiquidityWeights`, `buildCurveWithCreatorFirstBuy`) to build the curve config first before calling `createConfig`.
-- `tempWSolAcc` param added to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions. It is required when receiver != creator/feeClaimer.
+## [1.1.2] - 2025-04-30
+
+### Added
+
+- New fee options: 4% and 6% graduation fees
+- New functions:
+    - `creatorWithdrawSurplus`
+    - `claimCreatorTradingFee`
+    - `createPoolAndBuy`
+- New getter functions
+- SDK modularization and RPC call optimization
+
+### Changed
+
+- Updated service and getter function calling patterns
+
+### Breaking Changes
+
+- Added required `creatorTradingFeePercentage` parameter to:
+    - `createConfig`
+    - `buildCurveAndCreateConfig`
+    - `buildCurveAndCreateConfigByMarketCap`
+- Updated function namespaces:
+    - `client.partners` → `client.partner`
+    - `client.migrations` → `client.migration`
+    - `client.creators` → `client.creator`
+    - `client.pools` → `client.pool`
+    - `client.getProgram()` → `client.state`
+- New pool address derivation functions:
+    1. `deriveDbcPoolAddress`
+    2. `deriveDammV1PoolAddress`
+    3. `deriveDammV2PoolAddress`
