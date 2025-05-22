@@ -65,8 +65,8 @@ describe('calculateFeeScheduler tests', () => {
             tokenQuoteDecimal: TokenDecimal.NINE,
             lockedVestingParam: {
                 totalLockedVestingAmount: 0,
-                amountPerVestingPeriod: 0,
                 numberOfVestingPeriod: 0,
+                cliffUnlockAmount: 0,
                 totalVestingDuration: 0,
                 cliffDurationFromMigrationTime: 0,
             },
