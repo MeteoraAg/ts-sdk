@@ -16,12 +16,9 @@ import {
     getMigrationBaseToken,
     getMigrationThresholdPrice,
     getSwapAmountWithBuffer,
-} from './common'
-import {
     getTotalTokenSupply,
-    isDefaultLockedVesting,
-    isNativeSol,
-} from './utils'
+} from './common'
+import { isDefaultLockedVesting, isNativeSol } from './utils'
 
 /**
  * Validate the pool fees
@@ -386,13 +383,6 @@ export function validateBaseTokenType(
     return baseTokenType === poolConfig.tokenType
 }
 
-/**
- * Validate that the user has sufficient balance for the swap
- * @param balance - The current balance in lamports
- * @param amountIn - The input amount for the swap
- * @param isSOLInput - Whether the input token is SOL
- * @returns true if the balance is sufficient, throws error if insufficient
- */
 /**
  * Validate that the user has sufficient balance for the swap
  * @param connection - The Solana connection

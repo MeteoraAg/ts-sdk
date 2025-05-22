@@ -6,7 +6,7 @@ import {
     getSwapAmountFromQuoteToBase,
 } from '../../src/math/swapQuote'
 import { TradeDirection, GetFeeMode } from '../../src/types'
-import { Q } from '../utils/test-helpers'
+import { Q } from '../utils/common'
 
 // Test getFeeMode function
 test('getFeeMode with QuoteToken mode', () => {

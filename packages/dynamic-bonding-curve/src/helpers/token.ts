@@ -13,10 +13,12 @@ import {
     getAssociatedTokenAddressSync,
     getMint,
     NATIVE_MINT,
+    TOKEN_2022_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
     TokenAccountNotFoundError,
     TokenInvalidAccountOwnerError,
 } from '@solana/spl-token'
+import { TokenType } from '../types'
 
 /**
  * Get or create an ATA instruction
@@ -71,11 +73,13 @@ export const getOrCreateATAInstruction = async (
 /**
  * Create an unwrap SOL instruction
  * @param owner - The owner of the SOL
+ * @param receiver - The receiver of the SOL
  * @param allowOwnerOffCurve - Whether to allow the owner to be off curve
  * @returns The unwrap SOL instruction
  */
 export function unwrapSOLInstruction(
     owner: PublicKey,
+    receiver: PublicKey,
     allowOwnerOffCurve = true
 ): TransactionInstruction | null {
     const wSolATAAccount = getAssociatedTokenAddressSync(
@@ -86,7 +90,7 @@ export function unwrapSOLInstruction(
     if (wSolATAAccount) {
         const closedWrappedSolInstruction = createCloseAccountInstruction(
             wSolATAAccount,
-            owner,
+            receiver,
             owner,
             [],
             TOKEN_PROGRAM_ID
@@ -173,4 +177,15 @@ export async function getTokenDecimals(
         tokenProgram
     )
     return mintInfo.decimals
+}
+
+/**
+ * Get the token program for a given token type
+ * @param tokenType - The token type
+ * @returns The token program
+ */
+export function getTokenProgram(tokenType: TokenType): PublicKey {
+    return tokenType === TokenType.SPL
+        ? TOKEN_PROGRAM_ID
+        : TOKEN_2022_PROGRAM_ID
 }

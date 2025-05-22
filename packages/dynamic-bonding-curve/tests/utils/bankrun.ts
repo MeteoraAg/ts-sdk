@@ -23,10 +23,13 @@ import {
     getAssociatedTokenAddressSync,
     TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
-import { DynamicBondingCurveProgram } from '../../src/types'
 import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor'
 import { DynamicBondingCurve } from '../../src/idl/dynamic-bonding-curve/idl'
 import DynamicBondingCurveIDL from '../../src/idl/dynamic-bonding-curve/idl.json'
+import {
+    DynamicBondingCurveClient,
+    DynamicBondingCurveProgram,
+} from '../../src'
 
 export const LOCAL_ADMIN_KEYPAIR = Keypair.fromSecretKey(
     Uint8Array.from([
@@ -126,17 +129,9 @@ export async function startTest() {
 
 export function createDynamicBondingCurveProgram(): DynamicBondingCurveProgram {
     const wallet = new Wallet(Keypair.generate())
-    const provider = new AnchorProvider(
-        new Connection(clusterApiUrl('devnet')),
-        wallet,
-        {}
-    )
-
-    const program = new Program<DynamicBondingCurve>(
-        DynamicBondingCurveIDL as DynamicBondingCurve,
-        provider
-    )
-    return program
+    const connection = new Connection(clusterApiUrl('devnet'))
+    const provider = new AnchorProvider(connection, wallet, {})
+    return new DynamicBondingCurveProgram(connection, 'confirmed')
 }
 
 export async function fundSol(

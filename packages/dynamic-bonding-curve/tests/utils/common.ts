@@ -17,3 +17,9 @@ export function convertBNToDecimal<T>(obj: T): T {
     }
     return obj
 }
+
+// Q64.64 format helper
+export const Q = (n: number) => {
+    const bigIntValue = BigInt(Math.floor(n * 2 ** 64))
+    return new BN(bigIntValue.toString())
+}

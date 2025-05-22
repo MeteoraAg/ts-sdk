@@ -8,7 +8,7 @@ import {
     VAULT_PROGRAM_ID,
     DYNAMIC_BONDING_CURVE_PROGRAM_ID,
 } from '../constants'
-import { getFirstKey, getSecondKey } from './utils'
+import { getFirstKey, getSecondKey } from './common'
 
 const SEED = Object.freeze({
     POOL_AUTHORITY: 'pool_authority',
@@ -31,12 +31,20 @@ const SEED = Object.freeze({
     VAULT: 'vault',
 })
 
-/////////////////////
-// EVENT AUTHORITY //
-/////////////////////
+/**
+ * Derive DBC event authority
+ * @returns The event authority
+ */
+export function deriveDbcEventAuthority(): PublicKey {
+    const [eventAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from(SEED.EVENT_AUTHORITY)],
+        DYNAMIC_BONDING_CURVE_PROGRAM_ID
+    )
+    return eventAuthority
+}
 
 /**
- * Derive the DAMM V1 event authority
+ * Derive DAMM V1 event authority
  * @returns The event authority
  */
 export function deriveDammV1EventAuthority(): PublicKey {
@@ -48,7 +56,7 @@ export function deriveDammV1EventAuthority(): PublicKey {
 }
 
 /**
- * Derive the DAMM V2 event authority
+ * Derive DAMM V2 event authority
  * @returns The event authority
  */
 export function deriveDammV2EventAuthority(): PublicKey {
@@ -60,7 +68,7 @@ export function deriveDammV2EventAuthority(): PublicKey {
 }
 
 /**
- * Derive the locker event authority
+ * Derive locker event authority
  * @returns The event authority
  */
 export function deriveLockerEventAuthority(): PublicKey {
@@ -71,12 +79,8 @@ export function deriveLockerEventAuthority(): PublicKey {
     return eventAuthority
 }
 
-////////////////////
-// POOL AUTHORITY //
-////////////////////
-
 /**
- * Derive the DBC pool authority
+ * Derive DBC pool authority
  * @returns The pool authority
  */
 export function deriveDbcPoolAuthority(): PublicKey {
@@ -89,7 +93,7 @@ export function deriveDbcPoolAuthority(): PublicKey {
 }
 
 /**
- * Derive the DAMM V1 pool authority
+ * Derive DAMM V1 pool authority
  * @returns The pool authority
  */
 export function deriveDammV1PoolAuthority(): PublicKey {
@@ -102,7 +106,7 @@ export function deriveDammV1PoolAuthority(): PublicKey {
 }
 
 /**
- * Derive the DAMM V2 pool authority
+ * Derive DAMM V2 pool authority
  * @returns The pool authority
  */
 export function deriveDammV2PoolAuthority(): PublicKey {
@@ -114,12 +118,8 @@ export function deriveDammV2PoolAuthority(): PublicKey {
     return poolAuthority
 }
 
-////////////////////
-// POOL ADDRESSES //
-////////////////////
-
 /**
- * Derive the DBC pool address
+ * Derive DBC pool address
  * @param quoteMint - The quote mint
  * @param baseMint - The base mint
  * @param config - The config
@@ -153,7 +153,7 @@ export function deriveDbcPoolAddress(
 }
 
 /**
- * Derive the DAMM V1 pool address
+ * Derive DAMM V1 pool address
  * @param config - The config
  * @param tokenAMint - The token A mint
  * @param tokenBMint - The token B mint
@@ -175,7 +175,7 @@ export function deriveDammV1PoolAddress(
 }
 
 /**
- * Derive the DAMM V2 pool address
+ * Derive DAMM V2 pool address
  * @param config - The config
  * @param tokenAMint - The token A mint
  * @param tokenBMint - The token B mint
@@ -197,10 +197,6 @@ export function deriveDammV2PoolAddress(
     )[0]
 }
 
-////////////////////////
-// METADATA ADDRESSES //
-////////////////////////
-
 /**
  * Derive the mint metadata address
  * @param mint - The mint
@@ -220,7 +216,7 @@ export function deriveMintMetadata(mint: PublicKey): PublicKey {
 }
 
 /**
- * Derive the partner metadata
+ * Derive partner metadata
  * @param feeClaimer - The fee claimer
  * @returns The partner metadata
  */
@@ -233,7 +229,7 @@ export function derivePartnerMetadata(feeClaimer: PublicKey): PublicKey {
 }
 
 /**
- * Derive the DBC pool metadata
+ * Derive DBC pool metadata
  * @param pool - The pool
  * @returns The DBC pool metadata
  */
@@ -245,9 +241,8 @@ export function deriveDbcPoolMetadata(pool: PublicKey): PublicKey {
 }
 
 /**
- * Derive the DAMM migration metadata address
+ * Derive DAMM V1 migration metadata address
  * @param virtual_pool - The virtual pool
- * @param migrateToDammV2 - Whether to migrate to DAMM V2
  * @returns The DAMM migration metadata address
  */
 export function deriveDammV1MigrationMetadataAddress(
@@ -260,9 +255,8 @@ export function deriveDammV1MigrationMetadataAddress(
 }
 
 /**
- * Derive the DAMM migration metadata address
+ * Derive DAMM V2 migration metadata address
  * @param virtual_pool - The virtual pool
- * @param migrateToDammV2 - Whether to migrate to DAMM V2
  * @returns The DAMM migration metadata address
  */
 export function deriveDammV2MigrationMetadataAddress(
@@ -274,12 +268,8 @@ export function deriveDammV2MigrationMetadataAddress(
     )[0]
 }
 
-/////////////////////
-// VAULT ADDRESSES //
-/////////////////////
-
 /**
- * Derive the token vault address
+ * Derive DBC token vault address
  * @param pool - The pool
  * @param mint - The mint
  * @returns The token vault
@@ -291,24 +281,6 @@ export function deriveDbcTokenVaultAddress(
     const [tokenVault] = PublicKey.findProgramAddressSync(
         [Buffer.from(SEED.TOKEN_VAULT), mint.toBuffer(), pool.toBuffer()],
         DYNAMIC_BONDING_CURVE_PROGRAM_ID
-    )
-
-    return tokenVault
-}
-
-/**
- * Derive the token vault address
- * @param pool - The pool
- * @param mint - The mint
- * @returns The token vault
- */
-export function deriveDammV2TokenVaultAddress(
-    pool: PublicKey,
-    mint: PublicKey
-): PublicKey {
-    const [tokenVault] = PublicKey.findProgramAddressSync(
-        [Buffer.from(SEED.TOKEN_VAULT), mint.toBuffer(), pool.toBuffer()],
-        DAMM_V2_PROGRAM_ID
     )
 
     return tokenVault
@@ -331,7 +303,25 @@ export function deriveDammV1VaultLPAddress(
 }
 
 /**
- * Derive the vault address
+ * Derive DAMM V2 token vault address
+ * @param pool - The pool
+ * @param mint - The mint
+ * @returns The token vault
+ */
+export function deriveDammV2TokenVaultAddress(
+    pool: PublicKey,
+    mint: PublicKey
+): PublicKey {
+    const [tokenVault] = PublicKey.findProgramAddressSync(
+        [Buffer.from(SEED.TOKEN_VAULT), mint.toBuffer(), pool.toBuffer()],
+        DAMM_V2_PROGRAM_ID
+    )
+
+    return tokenVault
+}
+
+/**
+ * Derive vault address
  * @param mint - The mint
  * @param payer - The payer
  * @returns The vault address
@@ -347,7 +337,7 @@ export function deriveVaultAddress(
 }
 
 /**
- * Derive the vault PDAs
+ * Derive vault PDAs
  * @param tokenMint - The token mint
  * @param seedBaseKey - The seed base key
  * @returns The vault PDAs
@@ -382,7 +372,7 @@ export const deriveVaultPdas = (
 }
 
 /**
- * Derive the token vault key
+ * Derive token vault key
  * @param vaultKey - The vault key
  * @returns The token vault key
  */
@@ -393,12 +383,8 @@ export function deriveTokenVaultKey(vaultKey: PublicKey): PublicKey {
     )[0]
 }
 
-//////////////////
-// LP ADDRESSES //
-//////////////////
-
 /**
- * Derive the LP mint address
+ * Derive LP mint address
  * @param pool - The pool
  * @returns The LP mint address
  */
@@ -410,7 +396,7 @@ export function deriveVaultLpMintAddress(pool: PublicKey) {
 }
 
 /**
- * Derive the LP mint address
+ * Derive LP mint address
  * @param pool - The pool
  * @returns The LP mint address
  */
@@ -420,10 +406,6 @@ export function deriveDammV1LpMintAddress(pool: PublicKey) {
         DAMM_V1_PROGRAM_ID
     )[0]
 }
-
-////////////////////////
-// POSITION ADDRESSES //
-////////////////////////
 
 /**
  * Derive the position address
@@ -450,10 +432,6 @@ export function derivePositionNftAccount(
         DAMM_V2_PROGRAM_ID
     )[0]
 }
-
-//////////////////////
-// ESCROW ADDRESSES //
-//////////////////////
 
 /**
  * Derive the DAMM V1 lock escrow address
@@ -508,10 +486,6 @@ export function deriveEscrow(base: PublicKey): PublicKey {
     return escrow
 }
 
-///////////////////
-// FEE ADDRESSES //
-///////////////////
-
 /**
  * Derive the protocol fee address
  * @param mint - The mint
@@ -527,10 +501,6 @@ export function deriveDammV1ProtocolFeeAddress(
         DAMM_V1_PROGRAM_ID
     )[0]
 }
-
-////////////////////
-// LOCKER ADDRESS //
-////////////////////
 
 /**
  * Derive the base key for the locker

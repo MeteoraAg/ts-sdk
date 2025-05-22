@@ -1,10 +1,4 @@
-import type {
-    Accounts,
-    BN,
-    IdlAccounts,
-    IdlTypes,
-    Program,
-} from '@coral-xyz/anchor'
+import type { Accounts, BN, IdlAccounts, IdlTypes } from '@coral-xyz/anchor'
 import type { DynamicBondingCurve } from './idl/dynamic-bonding-curve/idl'
 import type { Keypair, PublicKey, Transaction } from '@solana/web3.js'
 
@@ -208,6 +202,12 @@ export enum Rounding {
 // TYPES //
 ///////////
 
+export type CreateConfigParam = Omit<
+    CreateConfigAccounts,
+    'program' | 'eventAuthority' | 'systemProgram'
+> &
+    ConfigParameters
+
 export type BaseFee = {
     cliffFeeNumerator: BN
     numberOfPeriod: number
@@ -215,12 +215,6 @@ export type BaseFee = {
     reductionFactor: BN
     feeSchedulerMode: FeeSchedulerMode
 }
-
-export type CreateConfigParam = Omit<
-    CreateConfigAccounts,
-    'program' | 'eventAuthority' | 'systemProgram'
-> &
-    ConfigParameters
 
 export type CreateDammV1MigrationMetadataParam = {
     payer: PublicKey
@@ -231,11 +225,20 @@ export type CreateDammV1MigrationMetadataParam = {
 export type CreateDammV2MigrationMetadataParam =
     CreateDammV1MigrationMetadataParam
 
-export type FeeSchedulerParameters = {
+export type FeeSchedulerParams = {
+    startingFeeBps: number
+    endingFeeBps: number
     numberOfPeriod: number
-    reductionFactor: number
-    periodFrequency: number
     feeSchedulerMode: FeeSchedulerMode
+    totalDuration: number
+}
+
+export type LockedVestingParams = {
+    totalLockedVestingAmount: number
+    amountPerVestingPeriod: number
+    numberOfVestingPeriod: number
+    totalVestingDuration: number
+    cliffDurationFromMigrationTime: number
 }
 
 export type BuildCurveBaseParam = {
@@ -243,9 +246,8 @@ export type BuildCurveBaseParam = {
     migrationOption: MigrationOption
     tokenBaseDecimal: TokenDecimal
     tokenQuoteDecimal: TokenDecimal
-    lockedVesting: LockedVestingParameters
-    feeSchedulerParam: FeeSchedulerParameters
-    baseFeeBps: number
+    lockedVestingParam: LockedVestingParams
+    feeSchedulerParam: FeeSchedulerParams
     dynamicFeeEnabled: boolean
     activationType: ActivationType
     collectFeeMode: CollectFeeMode
@@ -264,42 +266,31 @@ export type BuildCurveParam = BuildCurveBaseParam & {
     migrationQuoteThreshold: number
 }
 
-export type BuildCurveByMarketCapParam = BuildCurveBaseParam & {
+export type BuildCurveWithMarketCapParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
 }
 
-export type BuildCurveGraphParam = BuildCurveBaseParam & {
+export type BuildCurveWithTwoSegmentsParam = BuildCurveBaseParam & {
+    initialMarketCap: number
+    migrationMarketCap: number
+    percentageSupplyOnMigration: number
+}
+
+export type BuildCurveWithLiquidityWeightsParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
     liquidityWeights: number[]
 }
 
-export type BuildCurveAndCreateConfigParam = {
-    buildCurveParam: BuildCurveParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
-}
-
-export type BuildCurveAndCreateConfigByMarketCapParam = {
-    buildCurveByMarketCapParam: BuildCurveByMarketCapParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
-}
-
-export type BuildCurveGraphAndCreateConfigParam = {
-    buildCurveGraphParam: BuildCurveGraphParam
-    feeClaimer: PublicKey
-    leftoverReceiver: PublicKey
-    payer: PublicKey
-    quoteMint: PublicKey
-    config: PublicKey
+export type BuildCurveWithCreatorFirstBuyParam = BuildCurveBaseParam & {
+    initialMarketCap: number
+    migrationMarketCap: number
+    liquidityWeights: number[]
+    creatorFirstBuyOption: {
+        quoteAmount: number
+        baseAmount: number
+    }
 }
 
 export type MigrateToDammV1Param = {
@@ -327,7 +318,25 @@ export type ClaimTradingFeeParam = {
     maxBaseAmount: BN
     maxQuoteAmount: BN
     receiver?: PublicKey
+    tempWSolAcc?: PublicKey
 }
+
+export type ClaimPartnerTradingFeeWithQuoteMintNotSolParam = {
+    feeClaimer: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    config: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
+export type ClaimPartnerTradingFeeWithQuoteMintSolParam =
+    ClaimPartnerTradingFeeWithQuoteMintNotSolParam & {
+        tempWSolAcc: PublicKey
+    }
 
 export type CreateVirtualPoolMetadataParam = {
     virtualPool: PublicKey
@@ -426,7 +435,24 @@ export type ClaimCreatorTradingFeeParam = {
     maxBaseAmount: BN
     maxQuoteAmount: BN
     receiver?: PublicKey
+    tempWSolAcc?: PublicKey
 }
+
+export type ClaimCreatorTradingFeeWithQuoteMintNotSolParam = {
+    creator: PublicKey
+    payer: PublicKey
+    feeReceiver: PublicKey
+    pool: PublicKey
+    poolState: VirtualPool
+    poolConfigState: PoolConfig
+    tokenBaseProgram: PublicKey
+    tokenQuoteProgram: PublicKey
+}
+
+export type ClaimCreatorTradingFeeWithQuoteMintSolParam =
+    ClaimCreatorTradingFeeWithQuoteMintNotSolParam & {
+        tempWSolAcc: PublicKey
+    }
 
 export type CreatorWithdrawSurplusParam = {
     creator: PublicKey

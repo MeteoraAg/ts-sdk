@@ -9,11 +9,11 @@ import {
     deriveDbcPoolAuthority,
     getOrCreateATAInstruction,
 } from '../helpers'
-import type { Program, ProgramAccount } from '@coral-xyz/anchor'
+import type { Program } from '@coral-xyz/anchor'
 import type { DynamicBondingCurve as DynamicBondingCurveIDL } from '../idl/dynamic-bonding-curve/idl'
 
 export class DynamicBondingCurveProgram {
-    protected program: Program<DynamicBondingCurveIDL>
+    program: Program<DynamicBondingCurveIDL>
     protected connection: Connection
     protected poolAuthority: PublicKey
     protected commitment: Commitment
