@@ -1,4 +1,5 @@
 import {
+    ActivationType,
     BaseFee,
     DynamicFeeParameters,
     FeeSchedulerMode,
@@ -21,6 +22,8 @@ import {
     MAX_SQRT_PRICE,
     MIN_SQRT_PRICE,
     ONE_Q64,
+    SLOT_DURATION,
+    TIMESTAMP_DURATION,
 } from '../constants'
 import BN from 'bn.js'
 import Decimal from 'decimal.js'
@@ -778,21 +781,23 @@ export function getDynamicFeeParams(
 
 /**
  * Calculate the locked vesting parameters
- * @param totalVestingAmount - The total vesting amount
- * @param numberOfPeriod - The number of periods
- * @param amountPerPeriod - The amount per period
+ * @param totalLockedVestingAmount - The total vesting amount
+ * @param numberOfVestingPeriod - The number of periods
+ * @param cliffUnlockAmount - The amount to unlock at cliff
+ * @param totalVestingDuration - The total duration of vesting
  * @param cliffDurationFromMigrationTime - The cliff duration from migration time
- * @param frequency - The frequency
  * @param tokenBaseDecimal - The decimal of the base token
  * @returns The locked vesting parameters
+ * total_locked_vesting_amount = cliff_unlock_amount + (amount_per_period * number_of_period)
  */
 export function getLockedVestingParams(
     totalLockedVestingAmount: number,
     numberOfVestingPeriod: number,
-    amountPerVestingPeriod: number,
+    cliffUnlockAmount: number,
     totalVestingDuration: number,
     cliffDurationFromMigrationTime: number,
-    tokenBaseDecimal: TokenDecimal
+    tokenBaseDecimal: TokenDecimal,
+    activationType: ActivationType
 ): {
     amountPerPeriod: BN
     cliffDurationFromMigrationTime: BN
@@ -810,33 +815,68 @@ export function getLockedVestingParams(
         }
     }
 
+    if (totalLockedVestingAmount == cliffUnlockAmount) {
+        return {
+            amountPerPeriod: new BN(1).mul(
+                new BN(10).pow(new BN(tokenBaseDecimal))
+            ),
+            cliffDurationFromMigrationTime: new BN(1),
+            frequency: new BN(1),
+            numberOfPeriod: new BN(1),
+            cliffUnlockAmount: new BN(totalLockedVestingAmount - 1).mul(
+                new BN(10).pow(new BN(tokenBaseDecimal))
+            ),
+        }
+    }
+
     if (numberOfVestingPeriod <= 0) {
         throw new Error('Total periods must be greater than zero')
     }
 
     if (numberOfVestingPeriod == 0 || totalVestingDuration == 0) {
         throw new Error(
-            'numberOfPeriod and totalVestingDuration must both greater than zero'
+            'numberOfPeriod and totalVestingDuration must both be greater than zero'
         )
     }
 
-    // Round amountPerVestingPeriod to a whole number
-    const roundedAmountPerPeriod = Math.floor(amountPerVestingPeriod)
+    if (cliffUnlockAmount > totalLockedVestingAmount) {
+        throw new Error(
+            'Cliff unlock amount cannot be greater than total locked vesting amount'
+        )
+    }
 
-    // Calculate total periodic amount with rounded value
+    // amount_per_period = (total_locked_vesting_amount - cliff_unlock_amount) / number_of_period
+    const amountPerPeriod =
+        (totalLockedVestingAmount - cliffUnlockAmount) / numberOfVestingPeriod
+
+    // round amountPerPeriod down to ensure we don't exceed total amount
+    const roundedAmountPerPeriod = Math.floor(amountPerPeriod)
+
+    // calculate the remainder from rounding down
     const totalPeriodicAmount = roundedAmountPerPeriod * numberOfVestingPeriod
+    const remainder =
+        totalLockedVestingAmount - (cliffUnlockAmount + totalPeriodicAmount)
 
-    // Calculate cliff unlock amount to ensure total matches totalLockedVestingAmount
-    const cliffUnlockAmount = totalLockedVestingAmount - totalPeriodicAmount
+    // add the remainder to cliffUnlockAmount to maintain total amount
+    const adjustedCliffUnlockAmount = cliffUnlockAmount + remainder
+
+    let periodFrequency: BN
+    if (activationType == ActivationType.Slot) {
+        periodFrequency = new BN(totalVestingDuration / numberOfVestingPeriod)
+            .div(new BN(TIMESTAMP_DURATION))
+            .mul(new BN(SLOT_DURATION))
+    } else {
+        periodFrequency = new BN(totalVestingDuration / numberOfVestingPeriod)
+    }
 
     return {
         amountPerPeriod: new BN(roundedAmountPerPeriod.toString()).mul(
             new BN(10).pow(new BN(tokenBaseDecimal))
         ),
         cliffDurationFromMigrationTime: new BN(cliffDurationFromMigrationTime),
-        frequency: new BN(totalVestingDuration / numberOfVestingPeriod),
+        frequency: periodFrequency,
         numberOfPeriod: new BN(numberOfVestingPeriod),
-        cliffUnlockAmount: new BN(cliffUnlockAmount.toString()).mul(
+        cliffUnlockAmount: new BN(adjustedCliffUnlockAmount.toString()).mul(
             new BN(10).pow(new BN(tokenBaseDecimal))
         ),
     }

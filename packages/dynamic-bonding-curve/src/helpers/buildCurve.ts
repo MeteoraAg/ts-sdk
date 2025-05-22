@@ -73,7 +73,7 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     const {
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
     } = buildCurveParam.lockedVestingParam
@@ -81,10 +81,11 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     const lockedVesting = getLockedVestingParams(
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
-        tokenBaseDecimal
+        tokenBaseDecimal,
+        activationType
     )
 
     const migrationBaseSupply = new BN(totalTokenSupply)
@@ -203,13 +204,14 @@ export function buildCurveWithMarketCap(
         initialMarketCap,
         migrationMarketCap,
         totalTokenSupply,
+        activationType,
         tokenBaseDecimal,
     } = buildCurveWithMarketCapParam
 
     const {
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
     } = buildCurveWithMarketCapParam.lockedVestingParam
@@ -217,10 +219,11 @@ export function buildCurveWithMarketCap(
     const lockedVesting = getLockedVestingParams(
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
-        tokenBaseDecimal
+        tokenBaseDecimal,
+        activationType
     )
 
     const totalSupply = new BN(totalTokenSupply).mul(
@@ -294,7 +297,7 @@ export function buildCurveWithTwoSegments(
     const {
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
     } = buildCurveWithTwoSegmentsParam.lockedVestingParam
@@ -302,10 +305,11 @@ export function buildCurveWithTwoSegments(
     const lockedVesting = getLockedVestingParams(
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
-        tokenBaseDecimal
+        tokenBaseDecimal,
+        activationType
     )
 
     let migrationBaseSupply = new BN(totalTokenSupply)
@@ -493,7 +497,7 @@ export function buildCurveWithLiquidityWeights(
     const {
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
     } = buildCurveWithLiquidityWeightsParam.lockedVestingParam
@@ -501,10 +505,11 @@ export function buildCurveWithLiquidityWeights(
     const lockedVesting = getLockedVestingParams(
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
-        tokenBaseDecimal
+        tokenBaseDecimal,
+        activationType
     )
 
     // 1. finding Pmax and Pmin
@@ -691,7 +696,7 @@ export function buildCurveWithCreatorFirstBuy(
     const {
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
     } = buildCurveWithCreatorFirstBuyParam.lockedVestingParam
@@ -699,10 +704,11 @@ export function buildCurveWithCreatorFirstBuy(
     const lockedVesting = getLockedVestingParams(
         totalLockedVestingAmount,
         numberOfVestingPeriod,
-        amountPerVestingPeriod,
+        cliffUnlockAmount,
         totalVestingDuration,
         cliffDurationFromMigrationTime,
-        tokenBaseDecimal
+        tokenBaseDecimal,
+        activationType
     )
 
     // find Pmax and Pmin

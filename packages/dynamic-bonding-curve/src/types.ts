@@ -235,8 +235,8 @@ export type FeeSchedulerParams = {
 
 export type LockedVestingParams = {
     totalLockedVestingAmount: number
-    amountPerVestingPeriod: number
     numberOfVestingPeriod: number
+    cliffUnlockAmount: number
     totalVestingDuration: number
     cliffDurationFromMigrationTime: number
 }

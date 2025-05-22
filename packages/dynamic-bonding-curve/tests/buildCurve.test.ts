@@ -29,8 +29,8 @@ describe('buildCurve tests', () => {
         tokenQuoteDecimal: TokenDecimal.NINE,
         lockedVestingParam: {
             totalLockedVestingAmount: 0,
-            amountPerVestingPeriod: 0,
             numberOfVestingPeriod: 0,
+            cliffUnlockAmount: 0,
             totalVestingDuration: 0,
             cliffDurationFromMigrationTime: 0,
         },
@@ -102,8 +102,8 @@ describe('buildCurve tests', () => {
             migrationMarketCap: 462.779320376,
             lockedVestingParam: {
                 totalLockedVestingAmount: 10000000,
-                amountPerVestingPeriod: 2000,
                 numberOfVestingPeriod: 1000,
+                cliffUnlockAmount: 0,
                 totalVestingDuration: 365 * 24 * 60 * 60,
                 cliffDurationFromMigrationTime: 0,
             },
@@ -124,11 +124,12 @@ describe('buildCurve tests', () => {
         const lockedVesting = getLockedVestingParams(
             lockedVestingParams.lockedVestingParam.totalLockedVestingAmount,
             lockedVestingParams.lockedVestingParam.numberOfVestingPeriod,
-            lockedVestingParams.lockedVestingParam.amountPerVestingPeriod,
+            lockedVestingParams.lockedVestingParam.cliffUnlockAmount,
             lockedVestingParams.lockedVestingParam.totalVestingDuration,
             lockedVestingParams.lockedVestingParam
                 .cliffDurationFromMigrationTime,
-            lockedVestingParams.tokenBaseDecimal
+            lockedVestingParams.tokenBaseDecimal,
+            lockedVestingParams.activationType
         )
 
         const totalVestingAmount = getTotalVestingAmount(lockedVesting)
@@ -240,8 +241,8 @@ describe('buildCurve tests', () => {
             tokenBaseDecimal: TokenDecimal.NINE,
             lockedVestingParam: {
                 totalLockedVestingAmount: 10000000,
-                amountPerVestingPeriod: 10000000,
                 numberOfVestingPeriod: 1,
+                cliffUnlockAmount: 0,
                 totalVestingDuration: 1,
                 cliffDurationFromMigrationTime: 0,
             },
@@ -355,8 +356,8 @@ describe('buildCurve tests', () => {
             tokenQuoteDecimal: TokenDecimal.NINE,
             lockedVestingParam: {
                 totalLockedVestingAmount: 0,
-                amountPerVestingPeriod: 0,
                 numberOfVestingPeriod: 0,
+                cliffUnlockAmount: 0,
                 totalVestingDuration: 0,
                 cliffDurationFromMigrationTime: 0,
             },

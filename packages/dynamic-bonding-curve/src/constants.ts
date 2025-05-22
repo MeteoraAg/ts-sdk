@@ -17,6 +17,9 @@ export const PARTNER_SURPLUS_SHARE = 80 // 80%
 export const SWAP_BUFFER_PERCENTAGE = 25 // 25%
 export const MAX_SWALLOW_PERCENTAGE = 20 // 20%
 
+export const SLOT_DURATION = 400
+export const TIMESTAMP_DURATION = 1000
+
 // Pubkey
 export const DYNAMIC_BONDING_CURVE_PROGRAM_ID = new PublicKey(
     'dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN'
