@@ -231,8 +231,8 @@ export function buildCurveWithMarketCap(
     )
 
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
-        new BN(initialMarketCap),
-        new BN(migrationMarketCap),
+        new Decimal(initialMarketCap),
+        new Decimal(migrationMarketCap),
         lockedVesting,
         totalSupply
     )

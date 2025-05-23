@@ -559,8 +559,8 @@ export const getSwapAmountWithBuffer = (
  * @returns The percentage of supply for initial liquidity
  */
 export const getPercentageSupplyOnMigration = (
-    initialMarketCap: BN,
-    migrationMarketCap: BN,
+    initialMarketCap: Decimal,
+    migrationMarketCap: Decimal,
     lockedVesting: LockedVestingParameters,
     totalTokenSupply: BN
 ): number => {
