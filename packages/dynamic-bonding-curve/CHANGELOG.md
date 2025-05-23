@@ -1,45 +1,76 @@
 # Changelog
 
-## [1.1.2] - 2025-04-30
+All notable changes to the Dynamic Bonding Curve SDK will be documented in this file.
 
-### Release Notes
+## [1.1.5] - 2025-05-23
 
-#### Feature Changes
+### Added
 
-- feat: added 4% and 6% graduation fee options
-- feat: creatorWithdrawSurplus and claimCreatorTradingFee functions
-- feat: added new getter functions
-- feat: refactor SDK to be more modular and optimise RPC calls
-- feat: added `createPoolAndBuy` function
-- fix: updated the way the services are called
-- fix: updated the way the getters are called
+- `createConfigAndPool` function
 
-#### Breaking Changes
+### Changed 
 
-- `createConfig`, `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` functions now require a `creatorTradingFeePercentage` parameter.
-- IDL includes `creatorWithdrawSurplus` and `claimCreatorTradingFee` instructions.
-- Partner, Migration, Creator, Pool and State functions are now called in this manner:
-    - `client.partners.createConfig` -> `client.partner.createConfig`
-    - `client.migrations.migrateToDammV1` -> `client.migration.migrateToDammV1`
-    - `client.creators.createPoolMetadata` -> `client.creator.createPoolMetadata`
-    - `client.pools.swap` -> `client.pool.swap`
-    - `client.getProgram().getPoolConfig` -> `client.state.getPoolConfig`
-- In order to get the DBC Pool Address, or DAMM V1 Pool Address, or DAMM V2 Pool Address, use the following functions (the order matters):
-    - `deriveDbcPoolAddress`
-    - `deriveDammV1PoolAddress`
-    - `deriveDammV2PoolAddress`
+- `docs.md` updated with the correct createPool format
+- `CHANGELOG.md` switched to DES format
 
----
+## [1.1.4] - 2025-05-09
+
+### Added
+
+- New function: `buildCurveGraphAndCreateConfig`
+- Added `leftover` parameter to curve building functions
+
+### Changed
+
+- Updated fee claiming functions to support custom receivers
+
+### Breaking Changes
+
+- `buildCurveAndCreateConfig` and `buildCurveAndCreateConfigByMarketCap` now require `leftover` parameter
+- `buildCurveGraphAndCreateConfig` uses `liquidityWeights[]` instead of `kFactor`
+- Added receiver option in `claimPartnerTradingFee` and `claimCreatorTradingFee`
 
 ## [1.1.3] - 2025-05-07
 
-### Release Notes
+### Changed
 
-#### Feature Changes
+- Updated `buildCurveGraphAndCreateConfig` to use `liquidityWeights[]` instead of `kFactor`
+- Modified dynamic fee calculation to be 20% of minimum base fee
+- Changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
 
-- fix: updated `buildCurveGraphAndCreateConfig` to use `liquidityWeights[]` instead of `kFactor`
-- fix: added payer option to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
-- fix: updated dynamic fee calculation to be 20% of minimum base fee
-- fix: changed `createPoolAndBuy` buyer from `payer` to `poolCreator`
+### Added
 
----
+- Payer option to `claimCreatorTradingFee` and `claimPartnerTradingFee` functions
+
+## [1.1.2] - 2025-04-30
+
+### Added
+
+- New fee options: 4% and 6% graduation fees
+- New functions:
+    - `creatorWithdrawSurplus`
+    - `claimCreatorTradingFee`
+    - `createPoolAndBuy`
+- New getter functions
+- SDK modularization and RPC call optimization
+
+### Changed
+
+- Updated service and getter function calling patterns
+
+### Breaking Changes
+
+- Added required `creatorTradingFeePercentage` parameter to:
+    - `createConfig`
+    - `buildCurveAndCreateConfig`
+    - `buildCurveAndCreateConfigByMarketCap`
+- Updated function namespaces:
+    - `client.partners` → `client.partner`
+    - `client.migrations` → `client.migration`
+    - `client.creators` → `client.creator`
+    - `client.pools` → `client.pool`
+    - `client.getProgram()` → `client.state`
+- New pool address derivation functions:
+    1. `deriveDbcPoolAddress`
+    2. `deriveDammV1PoolAddress`
+    3. `deriveDammV2PoolAddress`
