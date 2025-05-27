@@ -526,7 +526,7 @@ export function buildCurveWithFlatSegment(
         new BN(10).pow(new BN(tokenBaseDecimal))
     )
 
-    // Calculate migration quote threshold
+    // migrationMarketCap * migrationBaseSupply / totalTokenSupply
     let migrationQuoteThreshold =
         (migrationMarketCap * percentageSupplyOnMigration) / 100
 
@@ -578,10 +578,17 @@ export function buildCurveWithFlatSegment(
         .div(totalSupply)
         .div(new BN(100))
 
+    let initialSqrtPrice = getSqrtPriceFromMarketCap(
+        initialMarketCap,
+        totalTokenSupply,
+        tokenBaseDecimal,
+        tokenQuoteDecimal
+    )
+
     // Get the curve with flat segment and remaining curve segment
     const { sqrtStartPrice, curve } = getFlatCurve(
+        initialSqrtPrice,
         migrateSqrtPrice,
-        migrationBaseAmount,
         migrationQuoteThresholdWithDecimals,
         swapAmount,
         flatSegmentSqrtPrice,
