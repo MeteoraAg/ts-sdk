@@ -45,7 +45,7 @@ describe('buildCurveWithFlatSegment tests', () => {
         leftover: 10000000,
     }
 
-    test('build curve with flat segment', () => {
+    test('build curve with flat segment test', () => {
         console.log('\n testing build curve with flat segment...')
         const config = buildCurveWithFlatSegment({
             ...baseParams,
@@ -54,6 +54,30 @@ describe('buildCurveWithFlatSegment tests', () => {
             percentageSupplyOnMigration: 10,
             flatSegmentMarketCap: 100.1,
             flatSegmentPercentage: 20,
+        })
+
+        console.log(
+            'migrationQuoteThreshold: %d',
+            config.migrationQuoteThreshold
+                .div(new BN(10 ** TokenDecimal.NINE))
+                .toString()
+        )
+        console.log('sqrtStartPrice', convertBNToDecimal(config.sqrtStartPrice))
+        console.log('curve', convertBNToDecimal(config.curve))
+        expect(config).toBeDefined()
+    })
+
+    test('build curve with flat segment v1', () => {
+        console.log('\n testing build curve with flat segment v1...')
+        const config = buildCurveWithFlatSegment({
+            ...baseParams,
+            initialMarketCap: 114.28,
+            migrationMarketCap: 571.42,
+            percentageSupplyOnMigration: 20,
+            flatSegmentMarketCap: 114.29,
+            flatSegmentPercentage: 20,
+            tokenBaseDecimal: TokenDecimal.SIX,
+            tokenQuoteDecimal: TokenDecimal.NINE,
         })
 
         console.log(
