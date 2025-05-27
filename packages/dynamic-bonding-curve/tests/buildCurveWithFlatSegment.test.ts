@@ -42,7 +42,7 @@ describe('buildCurveWithFlatSegment tests', () => {
         partnerLockedLpPercentage: 100,
         creatorLockedLpPercentage: 0,
         creatorTradingFeePercentage: 0,
-        leftover: 0,
+        leftover: 1000,
     }
 
     test('build curve with flat segment test', () => {
@@ -52,7 +52,6 @@ describe('buildCurveWithFlatSegment tests', () => {
             initialMarketCap: 100,
             migrationMarketCap: 5000,
             percentageSupplyOnMigration: 10,
-            flatSegmentMarketCap: 100.1,
             flatSegmentPercentage: 20,
         })
 
@@ -74,7 +73,6 @@ describe('buildCurveWithFlatSegment tests', () => {
             initialMarketCap: 114.28,
             migrationMarketCap: 571.42,
             percentageSupplyOnMigration: 20,
-            flatSegmentMarketCap: 114.29,
             flatSegmentPercentage: 20,
             tokenBaseDecimal: TokenDecimal.SIX,
             tokenQuoteDecimal: TokenDecimal.NINE,
@@ -96,9 +94,8 @@ describe('buildCurveWithFlatSegment tests', () => {
         const config = buildCurveWithFlatSegment({
             ...baseParams,
             initialMarketCap: 114.28,
-            migrationMarketCap: 571.42,
+            migrationMarketCap: 1000,
             percentageSupplyOnMigration: 20,
-            flatSegmentMarketCap: 114.29,
             flatSegmentPercentage: 50,
             tokenBaseDecimal: TokenDecimal.SIX,
             tokenQuoteDecimal: TokenDecimal.NINE,
@@ -120,10 +117,9 @@ describe('buildCurveWithFlatSegment tests', () => {
         const config = buildCurveWithFlatSegment({
             ...baseParams,
             initialMarketCap: 114.28,
-            migrationMarketCap: 571.42,
+            migrationMarketCap: 700,
             percentageSupplyOnMigration: 20,
-            flatSegmentMarketCap: 114.29,
-            flatSegmentPercentage: 99,
+            flatSegmentPercentage: 60,
             tokenBaseDecimal: TokenDecimal.SIX,
             tokenQuoteDecimal: TokenDecimal.NINE,
         })

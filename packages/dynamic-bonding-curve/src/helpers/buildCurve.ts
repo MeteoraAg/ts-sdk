@@ -467,7 +467,6 @@ export function buildCurveWithFlatSegment(
         migrationMarketCap,
         percentageSupplyOnMigration,
         flatSegmentPercentage,
-        flatSegmentMarketCap,
         migrationOption,
         tokenBaseDecimal,
         tokenQuoteDecimal,
@@ -561,9 +560,15 @@ export function buildCurveWithFlatSegment(
         .sub(totalVestingAmount)
         .sub(totalLeftover)
 
-    let flatSegmentSwapAmount = swapAmount
-        .mul(new BN(flatSegmentPercentage))
-        .div(new BN(100))
+    let initialSqrtPrice = getSqrtPriceFromMarketCap(
+        initialMarketCap,
+        totalTokenSupply,
+        tokenBaseDecimal,
+        tokenQuoteDecimal
+    )
+
+    // flatSegmentMarketCap will be 100.01% of initialMC
+    let flatSegmentMarketCap = initialMarketCap * 1.0001
 
     let flatSegmentSqrtPrice = getSqrtPriceFromMarketCap(
         flatSegmentMarketCap,
@@ -572,29 +577,64 @@ export function buildCurveWithFlatSegment(
         tokenQuoteDecimal
     )
 
+    let flatSegmentSwapAmount = swapAmount
+        .mul(new BN(flatSegmentPercentage))
+        .div(new BN(100))
+
     let flatSegmentThreshold = new BN(flatSegmentMarketCap)
         .mul(new BN(10).pow(new BN(tokenQuoteDecimal)))
         .mul(flatSegmentSwapAmount)
         .div(totalSupply)
         .div(new BN(100))
 
-    let initialSqrtPrice = getSqrtPriceFromMarketCap(
-        initialMarketCap,
-        totalTokenSupply,
-        tokenBaseDecimal,
-        tokenQuoteDecimal
-    )
-
-    // Get the curve with flat segment and remaining curve segment
-    const { sqrtStartPrice, curve } = getFlatCurve(
+    const { sqrtStartPrice, curve: flatCurve } = getFlatCurve(
         initialSqrtPrice,
-        migrateSqrtPrice,
-        migrationQuoteThresholdWithDecimals,
-        swapAmount,
         flatSegmentSqrtPrice,
         flatSegmentThreshold,
         flatSegmentSwapAmount
     )
+
+    // instantiate midSqrtPriceDecimal1
+    let midSqrtPriceDecimal1 = new Decimal(migrateSqrtPrice.toString())
+        .mul(new Decimal(flatSegmentSqrtPrice.toString()))
+        .sqrt()
+    let midSqrtPrice1 = new BN(midSqrtPriceDecimal1.floor().toFixed())
+
+    // mid_price2 = (p1 * p2^3)^(1/4)
+    let numerator1 = new Decimal(flatSegmentSqrtPrice.toString())
+    let numerator2 = Decimal.pow(migrateSqrtPrice.toString(), 3)
+    let product1 = numerator1.mul(numerator2)
+    let midSqrtPriceDecimal2 = Decimal.pow(product1, 0.25)
+    let midSqrtPrice2 = new BN(midSqrtPriceDecimal2.floor().toFixed())
+
+    // mid_price3 = (p1^3 * p2)^(1/4)
+    let numerator3 = Decimal.pow(flatSegmentSqrtPrice.toString(), 3)
+    let numerator4 = new Decimal(migrateSqrtPrice.toString())
+    let product2 = numerator3.mul(numerator4)
+    let midSqrtPriceDecimal3 = Decimal.pow(product2, 0.25)
+    let midSqrtPrice3 = new BN(midSqrtPriceDecimal3.floor().toFixed())
+
+    let midPrices = [midSqrtPrice1, midSqrtPrice2, midSqrtPrice3]
+    let remainingCurves: { sqrtPrice: BN; liquidity: BN }[] = []
+
+    const remainingSwapAmount = swapAmount.sub(flatSegmentSwapAmount)
+
+    for (let i = 0; i < midPrices.length; i++) {
+        const result = getTwoCurve(
+            migrateSqrtPrice,
+            midPrices[i],
+            flatSegmentSqrtPrice,
+            remainingSwapAmount,
+            migrationQuoteThresholdWithDecimals
+        )
+        if (result.isOk) {
+            remainingCurves = result.curve
+            break
+        }
+    }
+
+    // Combine flat curve with remaining curves
+    let curve = [...flatCurve, ...remainingCurves]
 
     let totalDynamicSupply = getTotalSupplyFromCurve(
         migrationQuoteThresholdWithDecimals,

@@ -281,7 +281,6 @@ export type BuildCurveWithFlatSegmentParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
     percentageSupplyOnMigration: number
-    flatSegmentMarketCap: number
     flatSegmentPercentage: number
 }
 

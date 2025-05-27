@@ -427,9 +427,6 @@ export const getFirstCurve = (
  */
 export const getFlatCurve = (
     initialSqrtPrice: BN,
-    migrationSqrtPrice: BN,
-    migrationQuoteThreshold: BN,
-    swapAmount: BN,
     flatSegmentSqrtPrice: BN,
     flatSegmentThreshold: BN,
     flatSegmentSwapAmount: BN
@@ -442,38 +439,12 @@ export const getFlatCurve = (
         flatSegmentSqrtPrice
     )
 
-    // Calculate liquidity for remaining segment
-    const remainingSwapAmount = swapAmount.sub(flatSegmentSwapAmount)
-    const remainingLiquidity = getLiquidity(
-        remainingSwapAmount,
-        migrationQuoteThreshold,
-        flatSegmentSqrtPrice,
-        migrationSqrtPrice
-    )
-
-    const lastLiquidity = getInitialLiquidityFromDeltaBase(
-        remainingSwapAmount,
-        MAX_SQRT_PRICE,
-        migrationSqrtPrice
-    )
-
     let curve = [
         {
             sqrtPrice: flatSegmentSqrtPrice,
             liquidity: flatSegmentLiquidity,
         },
-        {
-            sqrtPrice: migrationSqrtPrice,
-            liquidity: remainingLiquidity,
-        },
     ]
-
-    if (!lastLiquidity.isZero()) {
-        curve.push({
-            sqrtPrice: MAX_SQRT_PRICE,
-            liquidity: lastLiquidity,
-        })
-    }
 
     return {
         sqrtStartPrice: initialSqrtPrice,
