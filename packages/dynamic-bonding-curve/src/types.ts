@@ -277,6 +277,14 @@ export type BuildCurveWithTwoSegmentsParam = BuildCurveBaseParam & {
     percentageSupplyOnMigration: number
 }
 
+export type BuildCurveWithFlatSegmentParam = BuildCurveBaseParam & {
+    initialMarketCap: number
+    migrationMarketCap: number
+    percentageSupplyOnMigration: number
+    flatSegmentMarketCap: number
+    flatSegmentPercentage: number
+}
+
 export type BuildCurveWithLiquidityWeightsParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number

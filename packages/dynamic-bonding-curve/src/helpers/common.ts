@@ -22,8 +22,6 @@ import {
     MAX_SQRT_PRICE,
     MIN_SQRT_PRICE,
     ONE_Q64,
-    SLOT_DURATION,
-    TIMESTAMP_DURATION,
 } from '../constants'
 import BN from 'bn.js'
 import Decimal from 'decimal.js'
@@ -391,26 +389,82 @@ export const getLiquidity = (
  * @returns The first curve
  */
 export const getFirstCurve = (
-    migrationSqrPrice: BN,
+    migrationSqrtPrice: BN,
     migrationAmount: BN,
     swapAmount: BN,
     migrationQuoteThreshold: BN
 ) => {
-    const sqrtStartPrice = migrationSqrPrice
+    const sqrtStartPrice = migrationSqrtPrice
         .mul(migrationAmount)
         .div(swapAmount)
     const liquidity = getLiquidity(
         swapAmount,
         migrationQuoteThreshold,
         sqrtStartPrice,
-        migrationSqrPrice
+        migrationSqrtPrice
     )
     return {
         sqrtStartPrice,
         curve: [
             {
-                sqrtPrice: migrationSqrPrice,
+                sqrtPrice: migrationSqrtPrice,
                 liquidity,
+            },
+        ],
+    }
+}
+
+/**
+ * Get the flat curve
+ * @param migrationSqrtPrice - The migration sqrt price
+ * @param migrationAmount - The migration amount
+ * @param migrationQuoteThreshold - The migration quote threshold
+ * @param swapAmount - The swap amount
+ * @param flatSegmentSqrtPrice - The flat segment sqrt price
+ * @param flatSegmentThreshold - The flat segment threshold
+ * @param flatSegmentSwapAmount - The flat segment swap amount
+ * @returns The flat curve
+ */
+export const getFlatCurve = (
+    migrationSqrtPrice: BN,
+    migrationAmount: BN,
+    migrationQuoteThreshold: BN,
+    swapAmount: BN,
+    flatSegmentSqrtPrice: BN,
+    flatSegmentThreshold: BN,
+    flatSegmentSwapAmount: BN
+) => {
+    const sqrtStartPrice = migrationSqrtPrice
+        .mul(migrationAmount)
+        .div(swapAmount)
+
+    // Calculate liquidity for flat segment
+    const flatSegmentLiquidity = getLiquidity(
+        flatSegmentSwapAmount,
+        flatSegmentThreshold,
+        sqrtStartPrice,
+        flatSegmentSqrtPrice
+    )
+
+    // Calculate liquidity for remaining segment
+    const remainingSwapAmount = swapAmount.sub(flatSegmentSwapAmount)
+    const remainingLiquidity = getLiquidity(
+        remainingSwapAmount,
+        migrationQuoteThreshold,
+        flatSegmentSqrtPrice,
+        migrationSqrtPrice
+    )
+
+    return {
+        sqrtStartPrice,
+        curve: [
+            {
+                sqrtPrice: flatSegmentSqrtPrice,
+                liquidity: flatSegmentLiquidity,
+            },
+            {
+                sqrtPrice: migrationSqrtPrice,
+                liquidity: remainingLiquidity,
             },
         ],
     }
