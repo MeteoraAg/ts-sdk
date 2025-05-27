@@ -114,4 +114,28 @@ describe('buildCurveWithFlatSegment tests', () => {
         console.log('curve', convertBNToDecimal(config.curve))
         expect(config).toBeDefined()
     })
+
+    test('build curve with flat segment v3', () => {
+        console.log('\n testing build curve with flat segment v3...')
+        const config = buildCurveWithFlatSegment({
+            ...baseParams,
+            initialMarketCap: 114.28,
+            migrationMarketCap: 571.42,
+            percentageSupplyOnMigration: 20,
+            flatSegmentMarketCap: 114.29,
+            flatSegmentPercentage: 99,
+            tokenBaseDecimal: TokenDecimal.SIX,
+            tokenQuoteDecimal: TokenDecimal.NINE,
+        })
+
+        console.log(
+            'migrationQuoteThreshold: %d',
+            config.migrationQuoteThreshold
+                .div(new BN(10 ** TokenDecimal.NINE))
+                .toString()
+        )
+        console.log('sqrtStartPrice', convertBNToDecimal(config.sqrtStartPrice))
+        console.log('curve', convertBNToDecimal(config.curve))
+        expect(config).toBeDefined()
+    })
 })
