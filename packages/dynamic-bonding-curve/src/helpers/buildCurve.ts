@@ -544,7 +544,7 @@ export function buildCurveWithFlatSegment(
     )
 
     let migrationBaseAmount = getMigrationBaseToken(
-        new BN(migrationQuoteThresholdWithDecimals),
+        migrationQuoteThresholdWithDecimals,
         migrateSqrtPrice,
         migrationOption
     )
@@ -577,15 +577,19 @@ export function buildCurveWithFlatSegment(
         tokenQuoteDecimal
     )
 
-    let flatSegmentSwapAmount = swapAmount
-        .mul(new BN(flatSegmentPercentage))
-        .div(new BN(100))
+    let flatSegmentSwapAmount = convertDecimalToBN(
+        new Decimal(swapAmount.toString())
+            .mul(new Decimal(flatSegmentPercentage))
+            .div(new Decimal(100))
+    )
 
-    let flatSegmentThreshold = new BN(flatSegmentMarketCap)
-        .mul(new BN(10).pow(new BN(tokenQuoteDecimal)))
-        .mul(flatSegmentSwapAmount)
-        .div(totalSupply)
-        .div(new BN(100))
+    let flatSegmentThreshold = convertDecimalToBN(
+        new Decimal(flatSegmentMarketCap)
+            .mul(new Decimal(10).pow(tokenQuoteDecimal))
+            .mul(new Decimal(flatSegmentSwapAmount.toString()))
+            .div(new Decimal(totalSupply.toString()))
+            .div(new Decimal(100))
+    )
 
     const { sqrtStartPrice, curve: flatCurve } = getFlatCurve(
         initialSqrtPrice,
