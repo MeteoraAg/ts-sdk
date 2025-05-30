@@ -86,8 +86,12 @@ export type SwapAccounts = Accounts<
     DynamicBondingCurve['instructions']['20']
 >['swap']
 
-export type WithdrawLeftoverAccounts = Accounts<
+export type TransferPoolCreatorAccounts = Accounts<
     DynamicBondingCurve['instructions']['21']
+>['transferPoolCreator']
+
+export type WithdrawLeftoverAccounts = Accounts<
+    DynamicBondingCurve['instructions']['22']
 >['withdrawLeftover']
 
 ///////////////
@@ -198,6 +202,11 @@ export enum Rounding {
     Down,
 }
 
+export enum TokenUpdateAuthorityOption {
+    Mutable = 0,
+    Immutable = 1,
+}
+
 ///////////
 // TYPES //
 ///////////
@@ -259,6 +268,11 @@ export type BuildCurveBaseParam = {
     creatorLockedLpPercentage: number
     creatorTradingFeePercentage: number
     leftover: number
+    tokenUpdateAuthority: number
+    migrationFee: {
+        feePercentage: number
+        creatorFeePercentage: number
+    }
 }
 
 export type BuildCurveParam = BuildCurveBaseParam & {
@@ -288,16 +302,6 @@ export type BuildCurveWithLiquidityWeightsParam = BuildCurveBaseParam & {
     initialMarketCap: number
     migrationMarketCap: number
     liquidityWeights: number[]
-}
-
-export type BuildCurveWithCreatorFirstBuyParam = BuildCurveBaseParam & {
-    initialMarketCap: number
-    migrationMarketCap: number
-    liquidityWeights: number[]
-    creatorFirstBuyOption: {
-        quoteAmount: number
-        baseAmount: number
-    }
 }
 
 export type InitializePoolBaseParam = {
@@ -335,7 +339,16 @@ export type CreateConfigAndPoolParam = CreateConfigParam & {
     }
 }
 
-export type CreatePoolAndBuyParam = {
+export type CreateConfigAndPoolWithFirstBuyParam = CreateConfigAndPoolParam & {
+    swapBuyParam: {
+        buyAmount: BN
+        minimumAmountOut: BN
+        quoteMintTokenAccount: PublicKey
+        referralTokenAccount: PublicKey | null
+    }
+}
+
+export type CreatePoolWithFirstBuyParam = {
     createPoolParam: CreatePoolParam
     buyAmount: BN
     minimumAmountOut: BN
@@ -470,6 +483,18 @@ export type CreatePartnerMetadataParam = {
     logo: string
     feeClaimer: PublicKey
     payer: PublicKey
+}
+
+export type TransferPoolCreatorParam = {
+    virtualPool: PublicKey
+    creator: PublicKey
+    newCreator: PublicKey
+}
+
+export type WithdrawMigrationFeeParam = {
+    virtualPool: PublicKey
+    sender: PublicKey // sender is creator or partner
+    feePayer?: PublicKey
 }
 
 ////////////////

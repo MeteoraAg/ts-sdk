@@ -124,6 +124,7 @@ export function getCurrentBaseFeeNumerator(
  * @param isReferral Whether referral is used
  * @param currentPoint Current point
  * @param activationPoint Activation point
+ * @param volatilityTracker Volatility tracker
  * @returns Fee on amount result
  */
 export function getFeeOnAmount(
@@ -199,6 +200,7 @@ export function getFeeOnAmount(
 /**
  * Get variable fee from dynamic fee
  * @param dynamicFee Dynamic fee parameters
+ * @param volatilityTracker Volatility tracker
  * @returns Variable fee
  */
 export function getVariableFee(

@@ -88,6 +88,11 @@ describe('calculateFeeScheduler tests', () => {
             creatorLockedLpPercentage: 50,
             creatorTradingFeePercentage: 50,
             leftover: 0,
+            tokenUpdateAuthority: 0,
+            migrationFee: {
+                feePercentage: 0,
+                creatorFeePercentage: 0,
+            },
         })
 
         console.log('curveConfig', convertBNToDecimal(curveConfig))

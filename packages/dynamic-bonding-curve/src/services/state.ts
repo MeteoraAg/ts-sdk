@@ -12,7 +12,6 @@ import {
     MeteoraDammV2MigrationMetadata,
     PartnerMetadata,
     PoolConfig,
-    TokenType,
     VirtualPool,
     VirtualPoolMetadata,
 } from '../types'

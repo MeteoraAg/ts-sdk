@@ -15,6 +15,7 @@ import {
     type PartnerWithdrawSurplusParam,
     ClaimPartnerTradingFeeWithQuoteMintNotSolParam,
     ClaimPartnerTradingFeeWithQuoteMintSolParam,
+    WithdrawMigrationFeeParam,
 } from '../types'
 import {
     derivePartnerMetadata,
@@ -411,5 +412,48 @@ export class PartnerService extends DynamicBondingCurveProgram {
             .preInstructions(preInstructions)
             .postInstructions(postInstructions)
             .transaction()
+    }
+
+    async withdrawMigrationFee(
+        withdrawMigrationFeeParams: WithdrawMigrationFeeParam
+    ): Promise<Transaction> {
+        const { virtualPool, sender, feePayer } = withdrawMigrationFeeParams
+        const virtualPoolState = await this.state.getPool(virtualPool)
+        const configState = await this.state.getPoolConfig(
+            virtualPoolState.config
+        )
+        const { ataPubkey: tokenQuoteAccount, ix: preInstruction } =
+            await getOrCreateATAInstruction(
+                this.program.provider.connection,
+                configState.quoteMint,
+                sender,
+                feePayer ?? sender,
+                true,
+                getTokenProgram(configState.quoteTokenFlag)
+            )
+
+        const postInstruction: TransactionInstruction[] = []
+        if (configState.quoteMint.equals(NATIVE_MINT)) {
+            const unwarpSOLIx = unwrapSOLInstruction(sender, sender)
+            unwarpSOLIx && postInstruction.push(unwarpSOLIx)
+        }
+
+        const transaction = await this.program.methods
+            .withdrawMigrationFee(0) // 0 as partner and 1 as creator
+            .accountsPartial({
+                poolAuthority: this.poolAuthority,
+                config: virtualPoolState.config,
+                virtualPool,
+                tokenQuoteAccount,
+                quoteVault: virtualPoolState.quoteVault,
+                quoteMint: configState.quoteMint,
+                sender,
+                tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+            })
+            .preInstructions([preInstruction])
+            .postInstructions(postInstruction)
+            .transaction()
+
+        return transaction
     }
 }

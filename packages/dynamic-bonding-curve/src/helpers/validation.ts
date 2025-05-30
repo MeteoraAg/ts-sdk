@@ -7,6 +7,7 @@ import {
     MigrationOption,
     TokenDecimal,
     TokenType,
+    TokenUpdateAuthorityOption,
     type CreateConfigParam,
     type PoolConfig,
 } from '../types'
@@ -174,7 +175,7 @@ export function validateCurve(
 }
 
 /**
- * Validate the token supply
+ * Validate token supply
  * @param tokenSupply - The token supply
  * @param leftoverReceiver - The leftover receiver
  * @param swapBaseAmount - The swap base amount
@@ -233,6 +234,20 @@ export function validateTokenSupply(
 }
 
 /**
+ * Validate the update authority option
+ * @param option  - The update authority option
+ * @returns true if the token update authority option is valid, false otherwise
+ */
+export function validateTokenUpdateAuthorityOptions(
+    option: TokenUpdateAuthorityOption
+): boolean {
+    return [
+        TokenUpdateAuthorityOption.Mutable,
+        TokenUpdateAuthorityOption.Immutable,
+    ].includes(option)
+}
+
+/**
  * Validate the config parameters
  * @param configParam - The config parameters
  */
@@ -255,6 +270,13 @@ export function validateConfigParameters(
         throw new Error('Invalid collect fee mode')
     }
 
+    // Update token authority option validation
+    if (
+        !validateTokenUpdateAuthorityOptions(configParam.tokenUpdateAuthority)
+    ) {
+        throw new Error('Invalid option for token update authority')
+    }
+
     // Migration and token type validation
     if (
         !validateMigrationAndTokenType(
@@ -273,6 +295,20 @@ export function validateConfigParameters(
     // Migration fee validation
     if (!validateMigrationFeeOption(configParam.migrationFeeOption)) {
         throw new Error('Invalid migration fee option')
+    }
+
+    // Migration fee percentages validation
+    if (
+        configParam.migrationFee.feePercentage < 0 ||
+        configParam.migrationFee.feePercentage > 50
+    ) {
+        throw new Error('Migration fee percentage must be between 0 and 50')
+    }
+    if (
+        configParam.migrationFee.creatorFeePercentage < 0 ||
+        configParam.migrationFee.creatorFeePercentage > 100
+    ) {
+        throw new Error('Creator fee percentage must be between 0 and 100')
     }
 
     // Token decimals validation

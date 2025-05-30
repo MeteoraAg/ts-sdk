@@ -16,7 +16,7 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { DammV1 } from '../idl/damm-v1/idl'
 
 /**
- * Create a permissionless dynamic vault
+ * Create a permissionless dynamic vault instruction
  * @param mint - The mint of the vault
  * @param payer - The payer of the vault
  * @param vaultProgram - The vault program

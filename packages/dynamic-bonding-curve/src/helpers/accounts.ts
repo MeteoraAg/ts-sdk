@@ -68,7 +68,7 @@ export function deriveDammV2EventAuthority(): PublicKey {
 }
 
 /**
- * Derive locker event authority
+ * Derive Locker event authority
  * @returns The event authority
  */
 export function deriveLockerEventAuthority(): PublicKey {
@@ -198,7 +198,7 @@ export function deriveDammV2PoolAddress(
 }
 
 /**
- * Derive the mint metadata address
+ * Derive mint metadata address
  * @param mint - The mint
  * @returns The mint metadata address
  */
@@ -287,7 +287,7 @@ export function deriveDbcTokenVaultAddress(
 }
 
 /**
- * Derive the DAMM V1 vault LP address
+ * Derive DAMM V1 vault LP address
  * @param vault - The vault
  * @param pool - The pool
  * @returns The vault LP address
@@ -337,7 +337,7 @@ export function deriveVaultAddress(
 }
 
 /**
- * Derive vault PDAs
+ * Derive vault addresses
  * @param tokenMint - The token mint
  * @param seedBaseKey - The seed base key
  * @returns The vault PDAs
@@ -372,9 +372,9 @@ export const deriveVaultPdas = (
 }
 
 /**
- * Derive token vault key
- * @param vaultKey - The vault key
- * @returns The token vault key
+ * Derive token vault address
+ * @param vaultKey - The vault address
+ * @returns The token vault address
  */
 export function deriveTokenVaultKey(vaultKey: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -384,9 +384,9 @@ export function deriveTokenVaultKey(vaultKey: PublicKey): PublicKey {
 }
 
 /**
- * Derive LP mint address
+ * Derive Vault LP mint address
  * @param pool - The pool
- * @returns The LP mint address
+ * @returns The Vault LP mint address
  */
 export function deriveVaultLpMintAddress(pool: PublicKey) {
     return PublicKey.findProgramAddressSync(
@@ -396,7 +396,7 @@ export function deriveVaultLpMintAddress(pool: PublicKey) {
 }
 
 /**
- * Derive LP mint address
+ * Derive DAMM V1 LP mint address
  * @param pool - The pool
  * @returns The LP mint address
  */
@@ -408,9 +408,9 @@ export function deriveDammV1LpMintAddress(pool: PublicKey) {
 }
 
 /**
- * Derive the position address
+ * Derive DAMM V2 position address
  * @param positionNft - The position NFT
- * @returns The position address
+ * @returns The DAMM V2 position address
  */
 export function derivePositionAddress(positionNft: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -420,9 +420,9 @@ export function derivePositionAddress(positionNft: PublicKey): PublicKey {
 }
 
 /**
- * Derive the position NFT account
+ * Derive DAMM V2 position NFT account
  * @param positionNftMint - The position NFT mint
- * @returns The position NFT account
+ * @returns The DAMM V2 position NFT account
  */
 export function derivePositionNftAccount(
     positionNftMint: PublicKey
@@ -434,7 +434,7 @@ export function derivePositionNftAccount(
 }
 
 /**
- * Derive the DAMM V1 lock escrow address
+ * Derive DAMM V1 lock escrow address
  * @param dammPool - The DAMM pool
  * @param creator - The creator of the virtual pool
  * @returns The lock escrow address
@@ -454,7 +454,7 @@ export function deriveDammV1LockEscrowAddress(
 }
 
 /**
- * Derive the DAMM V2 lock escrow address
+ * Derive DAMM V2 lock escrow address
  * @param dammPool - The DAMM pool
  * @param creator - The creator of the virtual pool
  * @returns The lock escrow address
@@ -474,7 +474,7 @@ export function deriveDammV2LockEscrowAddress(
 }
 
 /**
- * Derive the escrow address
+ * Derive escrow address
  * @param base - The base mint
  * @returns The escrow address
  */
@@ -487,7 +487,7 @@ export function deriveEscrow(base: PublicKey): PublicKey {
 }
 
 /**
- * Derive the protocol fee address
+ * Derive DAMM V1 protocol fee address
  * @param mint - The mint
  * @param pool - The pool
  * @returns The protocol fee address
@@ -503,7 +503,7 @@ export function deriveDammV1ProtocolFeeAddress(
 }
 
 /**
- * Derive the base key for the locker
+ * Derive base key for the locker
  * @param virtualPool - The virtual pool
  * @returns The base key for the locker
  */

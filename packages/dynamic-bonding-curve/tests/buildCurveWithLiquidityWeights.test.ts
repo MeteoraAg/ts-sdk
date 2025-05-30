@@ -3,6 +3,7 @@ import { buildCurveWithLiquidityWeights } from '../src/helpers'
 import BN from 'bn.js'
 import {
     ActivationType,
+    BuildCurveBaseParam,
     CollectFeeMode,
     FeeSchedulerMode,
     MigrationFeeOption,
@@ -14,7 +15,7 @@ import Decimal from 'decimal.js'
 import { convertBNToDecimal } from './utils/common'
 
 describe('buildCurveWithLiquidityWeights tests', () => {
-    const baseParams = {
+    const baseParams: BuildCurveBaseParam = {
         totalTokenSupply: 1000000000,
         migrationOption: MigrationOption.MET_DAMM_V2,
         tokenBaseDecimal: TokenDecimal.SIX,
@@ -44,6 +45,11 @@ describe('buildCurveWithLiquidityWeights tests', () => {
         creatorLockedLpPercentage: 0,
         creatorTradingFeePercentage: 0,
         leftover: 10000,
+        tokenUpdateAuthority: 0,
+        migrationFee: {
+            feePercentage: 10,
+            creatorFeePercentage: 50,
+        },
     }
 
     test('build curve with liquidity weights 1.2^n', () => {

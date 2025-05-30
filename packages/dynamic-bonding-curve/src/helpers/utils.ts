@@ -5,6 +5,15 @@ import { BASIS_POINT_MAX, FEE_DENOMINATOR } from '../constants'
 import Decimal from 'decimal.js'
 
 /**
+ * Get BN value from decimal value after roundown
+ * @param value - The decimal value
+ * @returns value in BN after roundown
+ */
+export function fromDecimalToBN(value: Decimal): BN {
+    return new BN(value.floor().toFixed());
+}
+
+/**
  * Create a memcmp filter for owner-based filtering
  * @param owner - The owner public key or string
  * @param offset - The offset where the owner field is located in the account data
@@ -57,7 +66,7 @@ export function isDefaultLockedVesting(lockedVesting: {
 }
 
 /**
- * Convert a decimal to a BN
+ * Convert decimal to a BN
  * @param value - The value
  * @returns The BN
  */
@@ -66,7 +75,7 @@ export function convertDecimalToBN(value: Decimal): BN {
 }
 
 /**
- * Converts basis points (bps) to a fee numerator
+ * Converts basis points (bps) to fee numerator
  * 1 bps = 0.01% = 0.0001 in decimal
  *
  * @param bps - The value in basis points [1-10_000]
@@ -77,7 +86,7 @@ export function bpsToFeeNumerator(bps: number): BN {
 }
 
 /**
- * Converts a fee numerator back to basis points (bps)
+ * Converts fee numerator back to basis points (bps)
  *
  * @param feeNumerator - The fee numerator to convert
  * @returns The equivalent value in basis points [1-10_000]

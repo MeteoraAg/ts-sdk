@@ -2,6 +2,7 @@ import {
     Connection,
     PublicKey,
     SystemProgram,
+    Transaction,
     TransactionInstruction,
 } from '@solana/web3.js'
 
@@ -71,7 +72,7 @@ export const getOrCreateATAInstruction = async (
 }
 
 /**
- * Create an unwrap SOL instruction
+ * Unwrap SOL instruction
  * @param owner - The owner of the SOL
  * @param receiver - The receiver of the SOL
  * @param allowOwnerOffCurve - Whether to allow the owner to be off curve
@@ -101,7 +102,7 @@ export function unwrapSOLInstruction(
 }
 
 /**
- * Create a wrap SOL instruction
+ * Wrap SOL instruction
  * @param from - The from address
  * @param to - The to address
  * @param amount - The amount to wrap
@@ -156,6 +157,7 @@ export function findAssociatedTokenAddress(
 
 /**
  * Get token decimals for a particular mint
+ * @param connection - The connection
  * @param mintAddress - The mint address to get decimals for
  * @returns The number of decimals for the token
  */
@@ -188,4 +190,95 @@ export function getTokenProgram(tokenType: TokenType): PublicKey {
     return tokenType === TokenType.SPL
         ? TOKEN_PROGRAM_ID
         : TOKEN_2022_PROGRAM_ID
+}
+
+/**
+ * Get the token type based on the token mint's program owner
+ * @param connection - The connection
+ * @param tokenMint - The token mint
+ * @returns The token type (SPL [0] or Token2022 [1])
+ */
+export async function getTokenType(
+    connection: Connection,
+    tokenMint: PublicKey
+): Promise<TokenType | null> {
+    const accountInfo = await connection.getAccountInfo(tokenMint)
+    if (!accountInfo) {
+        return null
+    }
+
+    return accountInfo.owner.equals(TOKEN_PROGRAM_ID)
+        ? TokenType.SPL
+        : TokenType.Token2022
+}
+
+/**
+ * Prepare token accounts instruction
+ * @param connection - The connection
+ * @param owner - The owner of the token account
+ * @param payer - The payer of the token account
+ * @param tokenMint - The mint of the token account
+ * @param amount - The amount of the token account
+ * @param tokenProgram - The token program ID.
+ * @returns The transaction and token account public key
+ */
+export async function prepareTokenAccountTx(
+    connection: Connection,
+    owner: PublicKey,
+    payer: PublicKey,
+    tokenMint: PublicKey,
+    amount: bigint,
+    tokenProgram: PublicKey
+): Promise<{
+    tokenAccount: PublicKey
+    transaction: Transaction
+}> {
+    const instructions: TransactionInstruction[] = []
+    const { ataPubkey: tokenAccount, ix: createAtaIx } =
+        await getOrCreateATAInstruction(
+            connection,
+            tokenMint,
+            owner,
+            payer,
+            true,
+            tokenProgram
+        )
+
+    createAtaIx && instructions.push(createAtaIx)
+
+    if (tokenMint.equals(NATIVE_MINT)) {
+        const wrapIx = wrapSOLInstruction(owner, tokenAccount, amount)
+        instructions.push(...wrapIx)
+    }
+
+    const transaction = new Transaction()
+    if (instructions.length > 0) {
+        transaction.add(...instructions)
+    }
+
+    return { tokenAccount, transaction }
+}
+
+/**
+ * Clean up token account instruction
+ * @param owner - The owner of the token account
+ * @param receiver - The receiver of the token account
+ * @param tokenMint - The mint of the token account
+ * @returns The transaction
+ */
+export async function cleanUpTokenAccountTx(
+    owner: PublicKey,
+    receiver: PublicKey,
+    tokenMint: PublicKey
+): Promise<{
+    transaction: Transaction
+}> {
+    if (tokenMint.equals(NATIVE_MINT)) {
+        const unwrapIx = unwrapSOLInstruction(owner, receiver)
+        if (unwrapIx) {
+            return { transaction: new Transaction().add(unwrapIx) }
+        }
+    }
+
+    return null
 }

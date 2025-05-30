@@ -21,8 +21,7 @@ describe('calculateLockedVesting tests', () => {
             cliffUnlockAmount,
             totalVestingDuration,
             cliffDurationFromMigrationTime,
-            TokenDecimal.SIX,
-            ActivationType.Timestamp
+            TokenDecimal.SIX
         )
 
         console.log('result', convertBNToDecimal(result))
@@ -53,8 +52,7 @@ describe('calculateLockedVesting tests', () => {
             cliffUnlockAmount,
             totalVestingDuration,
             cliffDurationFromMigrationTime,
-            TokenDecimal.SIX,
-            ActivationType.Slot
+            TokenDecimal.SIX
         )
 
         console.log('result', convertBNToDecimal(result))
@@ -85,8 +83,7 @@ describe('calculateLockedVesting tests', () => {
             cliffUnlockAmount,
             totalVestingDuration,
             cliffDurationFromMigrationTime,
-            TokenDecimal.SIX,
-            ActivationType.Slot
+            TokenDecimal.SIX
         )
 
         console.log('result', convertBNToDecimal(result))
@@ -117,8 +114,7 @@ describe('calculateLockedVesting tests', () => {
             cliffUnlockAmount,
             totalVestingDuration,
             cliffDurationFromMigrationTime,
-            TokenDecimal.SIX,
-            ActivationType.Slot
+            TokenDecimal.SIX
         )
 
         console.log('result', convertBNToDecimal(result))
@@ -149,8 +145,7 @@ describe('calculateLockedVesting tests', () => {
             cliffUnlockAmount,
             totalVestingDuration,
             cliffDurationFromMigrationTime,
-            TokenDecimal.SIX,
-            ActivationType.Slot
+            TokenDecimal.SIX
         )
 
         console.log('result', convertBNToDecimal(result))

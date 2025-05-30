@@ -1,5 +1,4 @@
 import {
-    ActivationType,
     BaseFee,
     DynamicFeeParameters,
     FeeSchedulerMode,
@@ -35,7 +34,7 @@ import { pow } from '../math/safeMath'
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { DynamicBondingCurve } from '../idl/dynamic-bonding-curve/idl'
 import { Program } from '@coral-xyz/anchor'
-import { bpsToFeeNumerator, feeNumeratorToBps } from './utils'
+import { bpsToFeeNumerator, feeNumeratorToBps, fromDecimalToBN } from './utils'
 
 /**
  * Get the first key
@@ -301,20 +300,52 @@ export function getDeltaAmountBase(
 }
 
 /**
- * Get the base token for migration
+ * Get migrationQuoteAmount from migrationQuoteThreshold and migrationFeePercent
  * @param migrationQuoteThreshold - The migration quote threshold
+ * @param migrationFeePercent - The migration fee percent
+ * @returns migration quote amount to deposit to pool
+ */
+export const getMigrationQuoteAmountFromMigrationQuoteThreshold = (
+    migrationQuoteThreshold: Decimal,
+    migrationFeePercent: number
+): Decimal => {
+    const migrationQuoteAmount = migrationQuoteThreshold
+        .mul(new Decimal(100).sub(new Decimal(migrationFeePercent)))
+        .div(new Decimal(100))
+    return migrationQuoteAmount
+}
+
+/**
+ * Get migrationQuoteThreshold from migrationQuoteAmount and migrationFeePercent
+ * @param migrationQuoteAmount - The migration quote amount
+ * @param migrationFeePercent - The migration fee percent
+ * @returns migration quote threshold on bonding curve
+ */
+export const getMigrationQuoteThresholdFromMigrationQuoteAmount = (
+    migrationQuoteAmount: Decimal,
+    migrationFeePercent: Decimal
+): Decimal => {
+    const migrationQuoteThreshold = migrationQuoteAmount
+        .mul(new Decimal(100))
+        .div(new Decimal(100).sub(new Decimal(migrationFeePercent)))
+    return migrationQuoteThreshold
+}
+
+/**
+ * Get the base token for migration
+ * @param migrationQuoteAmount - The migration quote amount to deposit to pool
  * @param sqrtMigrationPrice - The migration sqrt price
  * @param migrationOption - The migration option
  * @returns The base token
  */
 export const getMigrationBaseToken = (
-    migrationQuoteThreshold: BN,
+    migrationQuoteAmount: BN,
     sqrtMigrationPrice: BN,
     migrationOption: MigrationOption
 ): BN => {
     if (migrationOption == MigrationOption.MET_DAMM) {
         const price = sqrtMigrationPrice.mul(sqrtMigrationPrice)
-        const quote = migrationQuoteThreshold.shln(128)
+        const quote = migrationQuoteAmount.shln(128)
         const { div: baseDiv, mod } = quote.divmod(price)
         let div = baseDiv
         if (!mod.isZero()) {
@@ -323,7 +354,7 @@ export const getMigrationBaseToken = (
         return div
     } else if (migrationOption == MigrationOption.MET_DAMM_V2) {
         const liquidity = getInitialLiquidityFromDeltaQuote(
-            migrationQuoteThreshold,
+            migrationQuoteAmount,
             MIN_SQRT_PRICE,
             sqrtMigrationPrice
         )
@@ -386,17 +417,30 @@ export const getLiquidity = (
  * @param migrationAmount - The migration amount
  * @param swapAmount - The swap amount
  * @param migrationQuoteThreshold - The migration quote threshold
+ * @param migrationFeePercent - The migration fee percent
  * @returns The first curve
  */
 export const getFirstCurve = (
     migrationSqrtPrice: BN,
-    migrationAmount: BN,
+    migrationBaseAmount: BN,
     swapAmount: BN,
-    migrationQuoteThreshold: BN
+    migrationQuoteThreshold: BN,
+    migrationFeePercent: number
 ) => {
-    const sqrtStartPrice = migrationSqrtPrice
-        .mul(migrationAmount)
-        .div(swapAmount)
+    // Swap_amount = L *(1/Pmin - 1/Pmax) = L * (Pmax - Pmin) / (Pmax * Pmin)       (1)
+    // Quote_amount = L * (Pmax - Pmin)                                             (2)
+    // (Quote_amount * (1-migrationFeePercent/100) / Migration_amount = Pmax ^ 2    (3)
+
+    // From (1) and (2) => Quote_amount / Swap_amount = (Pmax * Pmin)               (4)
+    // From (3) and (4) => Swap_amount * (1-migrationFeePercent/100) / Migration_amount = Pmax / Pmin
+    // => Pmin = Pmax * Migration_amount / (Swap_amount * (1-migrationFeePercent/100))
+    const denominator = swapAmount
+        .mul(new BN(100).sub(new BN(migrationFeePercent)))
+        .div(new BN(100))
+    const sqrtStartPrice = migrationSqrPrice
+        .mul(migrationBaseAmount)
+        .div(denominator)
+
     const liquidity = getLiquidity(
         swapAmount,
         migrationQuoteThreshold,
@@ -460,6 +504,7 @@ export const getFlatCurve = (
  * @param lockedVesting - The locked vesting
  * @param migrationOption - The migration option
  * @param leftover - The leftover
+ * @param migrationFeePercent - The migration fee percent
  * @returns The total supply
  */
 export const getTotalSupplyFromCurve = (
@@ -468,7 +513,8 @@ export const getTotalSupplyFromCurve = (
     curve: Array<LiquidityDistributionParameters>,
     lockedVesting: LockedVestingParameters,
     migrationOption: MigrationOption,
-    leftover: BN
+    leftover: BN,
+    migrationFeePercent: number
 ): BN => {
     const sqrtMigrationPrice = getMigrationThresholdPrice(
         migrationQuoteThreshold,
@@ -485,8 +531,14 @@ export const getTotalSupplyFromCurve = (
         sqrtStartPrice,
         curve
     )
+
+    const migrationQuoteAmount =
+        getMigrationQuoteAmountFromMigrationQuoteThreshold(
+            new Decimal(migrationQuoteThreshold.toString()),
+            migrationFeePercent
+        )
     const migrationBaseAmount = getMigrationBaseToken(
-        migrationQuoteThreshold,
+        fromDecimalToBN(migrationQuoteAmount),
         sqrtMigrationPrice,
         migrationOption
     )
@@ -623,20 +675,19 @@ export const getPercentageSupplyOnMigration = (
 }
 
 /**
- * Get the migration quote threshold
+ * Get the migration quote amount
  * @param migrationMarketCap - The migration market cap
  * @param percentageSupplyOnMigration - The percentage of supply on migration
- * @returns The migration quote threshold
+ * @returns The migration quote amount
  */
-export const getMigrationQuoteThreshold = (
+export const getMigrationQuoteAmount = (
     migrationMarketCap: Decimal,
     percentageSupplyOnMigration: Decimal
-): number => {
+): Decimal => {
     // migrationMC * x / 100
     return migrationMarketCap
         .mul(percentageSupplyOnMigration)
         .div(new Decimal(100))
-        .toNumber()
 }
 
 /**
@@ -823,8 +874,7 @@ export function getLockedVestingParams(
     cliffUnlockAmount: number,
     totalVestingDuration: number,
     cliffDurationFromMigrationTime: number,
-    tokenBaseDecimal: TokenDecimal,
-    activationType: ActivationType
+    tokenBaseDecimal: TokenDecimal
 ): {
     amountPerPeriod: BN
     cliffDurationFromMigrationTime: BN

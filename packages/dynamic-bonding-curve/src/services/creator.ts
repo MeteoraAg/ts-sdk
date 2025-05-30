@@ -12,15 +12,20 @@ import {
     ClaimCreatorTradingFeeWithQuoteMintSolParam,
     CreateVirtualPoolMetadataParam,
     CreatorWithdrawSurplusParam,
+    TransferPoolCreatorParam,
+    WithdrawMigrationFeeParam,
 } from '../types'
 import {
     createAssociatedTokenAccountIdempotentInstruction,
+    NATIVE_MINT,
     TOKEN_PROGRAM_ID,
 } from '@solana/spl-token'
 import { DynamicBondingCurveProgram } from './program'
 import {
+    deriveDammV1MigrationMetadataAddress,
     deriveDbcPoolMetadata,
     findAssociatedTokenAddress,
+    getOrCreateATAInstruction,
     getTokenProgram,
     isNativeSol,
     unwrapSOLInstruction,
@@ -373,5 +378,73 @@ export class CreatorService extends DynamicBondingCurveProgram {
             .preInstructions(preInstructions)
             .postInstructions(postInstructions)
             .transaction()
+    }
+
+    async transferPoolCreator(
+        transferPoolCreatorParams: TransferPoolCreatorParam
+    ): Promise<Transaction> {
+        const { virtualPool, creator, newCreator } = transferPoolCreatorParams
+        const virtualPoolState = await this.state.getPool(virtualPool)
+        const migrationMetadata = deriveDammV1MigrationMetadataAddress(virtualPool)
+        const transaction = await this.program.methods
+            .transferPoolCreator()
+            .accountsPartial({
+                virtualPool,
+                newCreator,
+                config: virtualPoolState.config,
+                creator,
+            })
+            .remainingAccounts([
+                {
+                    isSigner: false,
+                    isWritable: false,
+                    pubkey: migrationMetadata,
+                },
+            ])
+            .transaction()
+
+        return transaction
+    }
+
+    async withdrawMigrationFee(
+        withdrawMigrationFeeParams: WithdrawMigrationFeeParam
+    ): Promise<Transaction> {
+        const { virtualPool, sender, feePayer } = withdrawMigrationFeeParams
+        const virtualPoolState = await this.state.getPool(virtualPool)
+        const configState = await this.state.getPoolConfig(
+            virtualPoolState.config
+        )
+        const { ataPubkey: tokenQuoteAccount, ix: preInstruction } =
+            await getOrCreateATAInstruction(
+                this.program.provider.connection,
+                configState.quoteMint,
+                sender,
+                feePayer ?? sender,
+                true,
+                getTokenProgram(configState.quoteTokenFlag)
+            )
+        const postInstruction: TransactionInstruction[] = []
+        if (configState.quoteMint.equals(NATIVE_MINT)) {
+            const unwarpSOLIx = unwrapSOLInstruction(sender, sender)
+            unwarpSOLIx && postInstruction.push(unwarpSOLIx)
+        }
+
+        const transaction = await this.program.methods
+            .withdrawMigrationFee(1) // 0 as partner and 1 as creator
+            .accountsPartial({
+                poolAuthority: this.poolAuthority,
+                config: virtualPoolState.config,
+                virtualPool,
+                tokenQuoteAccount,
+                quoteVault: virtualPoolState.quoteVault,
+                quoteMint: configState.quoteMint,
+                sender,
+                tokenQuoteProgram: getTokenProgram(configState.quoteTokenFlag),
+            })
+            .preInstructions([preInstruction])
+            .postInstructions(postInstruction)
+            .transaction()
+
+        return transaction
     }
 }

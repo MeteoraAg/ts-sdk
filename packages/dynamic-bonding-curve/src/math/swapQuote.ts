@@ -7,7 +7,6 @@ import {
 } from './curve'
 import { getFeeOnAmount } from './feeMath'
 import {
-    CollectFeeMode,
     GetFeeMode,
     Rounding,
     TradeDirection,
@@ -362,7 +361,6 @@ export function getFeeMode(
 
 /**
  * Calculate quote for a swap with exact input amount
- * Matches Rust's quote_exact_in function
  * @param virtualPool Virtual pool state
  * @param config Pool config state
  * @param swapBaseForQuote Whether to swap base for quote
