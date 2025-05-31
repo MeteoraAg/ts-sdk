@@ -421,7 +421,7 @@ export const getLiquidity = (
  * @returns The first curve
  */
 export const getFirstCurve = (
-    migrationSqrPrice: BN,
+    migrationSqrtPrice: BN,
     migrationBaseAmount: BN,
     swapAmount: BN,
     migrationQuoteThreshold: BN,
@@ -437,7 +437,7 @@ export const getFirstCurve = (
     const denominator = swapAmount
         .mul(new BN(100).sub(new BN(migrationFeePercent)))
         .div(new BN(100))
-    const sqrtStartPrice = migrationSqrPrice
+    const sqrtStartPrice = migrationSqrtPrice
         .mul(migrationBaseAmount)
         .div(denominator)
 
@@ -445,16 +445,54 @@ export const getFirstCurve = (
         swapAmount,
         migrationQuoteThreshold,
         sqrtStartPrice,
-        migrationSqrPrice
+        migrationSqrtPrice
     )
     return {
         sqrtStartPrice,
         curve: [
             {
-                sqrtPrice: migrationSqrPrice,
+                sqrtPrice: migrationSqrtPrice,
                 liquidity,
             },
         ],
+    }
+}
+
+/**
+ * Get the flat curve
+ * @param migrationSqrtPrice - The migration sqrt price
+ * @param migrationAmount - The migration amount
+ * @param migrationQuoteThreshold - The migration quote threshold
+ * @param swapAmount - The swap amount
+ * @param flatSegmentSqrtPrice - The flat segment sqrt price
+ * @param flatSegmentThreshold - The flat segment threshold
+ * @param flatSegmentSwapAmount - The flat segment swap amount
+ * @returns The flat curve
+ */
+export const getFlatCurve = (
+    initialSqrtPrice: BN,
+    flatSegmentSqrtPrice: BN,
+    flatSegmentThreshold: BN,
+    flatSegmentSwapAmount: BN
+) => {
+    // Calculate liquidity for flat segment
+    const flatSegmentLiquidity = getLiquidity(
+        flatSegmentSwapAmount,
+        flatSegmentThreshold,
+        initialSqrtPrice,
+        flatSegmentSqrtPrice
+    )
+
+    let curve = [
+        {
+            sqrtPrice: flatSegmentSqrtPrice,
+            liquidity: flatSegmentLiquidity,
+        },
+    ]
+
+    return {
+        sqrtStartPrice: initialSqrtPrice,
+        curve,
     }
 }
 
