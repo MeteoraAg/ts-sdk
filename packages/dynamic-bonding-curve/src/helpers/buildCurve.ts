@@ -121,12 +121,13 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         tokenBaseDecimal,
         tokenQuoteDecimal
     )
-    let migrationQuoteAmountInLamport = new BN(
-        migrationQuoteThreshold * 10 ** tokenQuoteDecimal
+
+    let migrationQuoteAmountInLamport = fromDecimalToBN(
+        migrationQuoteAmount.mul(new Decimal(10 ** tokenQuoteDecimal))
     )
 
     const migrationBaseAmount = getMigrationBaseToken(
-        new BN(migrationQuoteAmountInLamport),
+        migrationQuoteAmountInLamport,
         migrateSqrtPrice,
         migrationOption
     )
@@ -356,6 +357,7 @@ export function buildCurveWithTwoSegments(
     let migrationQuoteThresholdInLamport = fromDecimalToBN(
         migrationQuoteThreshold.mul(new Decimal(10 ** tokenQuoteDecimal))
     )
+
     let migrationQuoteAmountInLamport = fromDecimalToBN(
         migrationQuoteAmount.mul(new Decimal(10 ** tokenQuoteDecimal))
     )

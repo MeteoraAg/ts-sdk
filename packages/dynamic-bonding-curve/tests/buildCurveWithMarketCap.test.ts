@@ -14,6 +14,7 @@ import {
     MigrationOption,
     TokenDecimal,
     TokenType,
+    TokenUpdateAuthorityOption,
 } from '../src'
 import { convertBNToDecimal } from './utils/common'
 
@@ -162,5 +163,56 @@ describe('buildCurveWithMarketCap tests', () => {
             lockedVestingParams.lockedVestingParam.totalLockedVestingAmount *
                 10 ** lockedVestingParams.tokenBaseDecimal
         )
+    })
+
+    test('build curve by market cap 3', () => {
+        console.log('\n testing build curve by market cap...')
+        const config = buildCurveWithMarketCap({
+            totalTokenSupply: 100000000,
+            initialMarketCap: 1000,
+            migrationMarketCap: 3000,
+            migrationOption: MigrationOption.MET_DAMM_V2,
+            tokenBaseDecimal: TokenDecimal.SIX,
+            tokenQuoteDecimal: TokenDecimal.SIX,
+            lockedVestingParam: {
+                totalLockedVestingAmount: 50000000,
+                numberOfVestingPeriod: 1,
+                cliffUnlockAmount: 50000000,
+                totalVestingDuration: 1,
+                cliffDurationFromMigrationTime: 0,
+            },
+            feeSchedulerParam: {
+                startingFeeBps: 100,
+                endingFeeBps: 100,
+                numberOfPeriod: 0,
+                totalDuration: 0,
+                feeSchedulerMode: FeeSchedulerMode.Linear,
+            },
+            dynamicFeeEnabled: true,
+            activationType: ActivationType.Slot,
+            collectFeeMode: CollectFeeMode.OnlyQuote,
+            migrationFeeOption: MigrationFeeOption.FixedBps100,
+            tokenType: TokenType.SPL,
+            partnerLpPercentage: 0,
+            creatorLpPercentage: 0,
+            partnerLockedLpPercentage: 100,
+            creatorLockedLpPercentage: 0,
+            creatorTradingFeePercentage: 50,
+            leftover: 0,
+            tokenUpdateAuthority: TokenUpdateAuthorityOption.Immutable,
+            migrationFee: {
+                feePercentage: 25,
+                creatorFeePercentage: 50,
+            },
+        })
+
+        console.log(
+            'migrationQuoteThreshold: %d',
+            config.migrationQuoteThreshold.toString()
+        )
+
+        console.log('sqrtStartPrice', convertBNToDecimal(config.sqrtStartPrice))
+        console.log('curve', convertBNToDecimal(config.curve))
+        expect(config).toBeDefined()
     })
 })
