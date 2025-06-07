@@ -3,9 +3,9 @@ import { buildCurve } from '../src/helpers'
 import BN from 'bn.js'
 import {
     ActivationType,
+    BaseFeeMode,
     BuildCurveBaseParam,
     CollectFeeMode,
-    FeeSchedulerMode,
     MigrationFeeOption,
     MigrationOption,
     TokenDecimal,
@@ -26,12 +26,14 @@ describe('buildCurve tests', () => {
             totalVestingDuration: 0,
             cliffDurationFromMigrationTime: 0,
         },
-        feeSchedulerParam: {
-            startingFeeBps: 100,
-            endingFeeBps: 100,
-            numberOfPeriod: 0,
-            totalDuration: 0,
-            feeSchedulerMode: FeeSchedulerMode.Linear,
+        baseFeeParams: {
+            baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+            feeSchedulerParam: {
+                startingFeeBps: 100,
+                endingFeeBps: 100,
+                numberOfPeriod: 0,
+                totalDuration: 0,
+            },
         },
         dynamicFeeEnabled: true,
         activationType: ActivationType.Slot,

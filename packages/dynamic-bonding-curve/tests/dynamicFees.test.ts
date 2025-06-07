@@ -1,8 +1,8 @@
 import {
     BASIS_POINT_MAX,
     FEE_DENOMINATOR,
-    FeeSchedulerMode,
-    getMinBaseFeeBps,
+    BaseFeeMode,
+    calculateFeeSchedulerEndingBaseFeeBps,
 } from '../src'
 import { expect, test, describe } from 'bun:test'
 
@@ -13,13 +13,13 @@ describe('getMinBaseFeeBps tests', () => {
             (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
         const numberOfPeriod = 144
         const reductionFactor = 3333333
-        const feeSchedulerMode = FeeSchedulerMode.Linear
+        const baseFeeMode = BaseFeeMode.FeeSchedulerLinear
 
-        const minBaseFeeBps = getMinBaseFeeBps(
+        const minBaseFeeBps = calculateFeeSchedulerEndingBaseFeeBps(
             cliffFeeNumerator,
             numberOfPeriod,
             reductionFactor,
-            feeSchedulerMode
+            baseFeeMode
         )
 
         // linear mode: cliffFeeNumerator - (numberOfPeriod * reductionFactor)
@@ -43,13 +43,13 @@ describe('getMinBaseFeeBps tests', () => {
             (baseFeeBps * FEE_DENOMINATOR) / BASIS_POINT_MAX
         const numberOfPeriod = 37.5
         const reductionFactor = 822.5
-        const feeSchedulerMode = FeeSchedulerMode.Exponential
+        const baseFeeMode = BaseFeeMode.FeeSchedulerExponential
 
-        const minBaseFeeBps = getMinBaseFeeBps(
+        const minBaseFeeBps = calculateFeeSchedulerEndingBaseFeeBps(
             cliffFeeNumerator,
             numberOfPeriod,
             reductionFactor,
-            feeSchedulerMode
+            baseFeeMode
         )
 
         // exponential mode: cliffFeeNumerator * (1 - reductionFactor/BASIS_POINT_MAX)^numberOfPeriod

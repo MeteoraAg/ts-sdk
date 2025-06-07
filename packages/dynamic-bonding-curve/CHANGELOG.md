@@ -2,6 +2,43 @@
 
 All notable changes to the Dynamic Bonding Curve SDK will be documented in this file.
 
+## [1.2.4] - 2025-06-12
+
+### Added
+
+- Support for Rate Limiter mode in base fee configuration
+    - Allows partners to configure an alternative base fee mode that increases fee slope based on quote amount
+    - Only available when collect fee mode is in quote token only and for buy operations
+    - Prevents multiple swap instructions (or CPI) to the same pool in a single transaction
+
+### Breaking Changes
+
+- Maximum `cliff_fee_numerator` increased from 50% (5000 bps / 500_000_000) to 99% (9900 bps / 990_000_000)
+- `swap` instruction now requires `instruction_sysvar_account` in remaining_accounts when `is_rate_limiter_applied` is true
+- `swap_quote` function updated to handle rate limiter math calculations and 99% max fee
+- Base fee parameter structure updated:
+    - Renamed `fee_scheduler_mode` to `base_fee_mode`
+    - Updated parameter structure:
+        ```
+        base_fee = {
+            cliff_fee_numerator: BN
+            first_factor: number // feeScheduler: numberOfPeriod, rateLimiter: feeIncrementBps
+            second_factor: BN // feeScheduler: periodFrequency, rateLimiter: maxLimiterDuration
+            third_factor: BN // feeScheduler: reductionFactor, rateLimiter: referenceAmount
+            base_fee_mode: BaseFeeMode // 0, 1, or 2
+        }
+        ```
+    - New base fee modes:
+        - 0 = Fee Scheduler - Linear
+        - 1 = Fee Scheduler - Exponential
+        - 2 = Rate Limiter
+- `buildCurve`, `buildCurveWithMarketCap`, `buildCurveWithTwoSegments`, `buildCurveWithLiquidityWeights` functions now require `baseFeeParams` parameter that can be either configured with `feeSchedulerParam` or `rateLimiterParam`
+
+### Changed
+
+- Updated base fee parameter structure to support both fee scheduler and rate limiter modes
+- Enhanced fee calculation logic to accommodate rate limiter functionality
+
 ## [1.2.2] - 2025-06-02
 
 ### Added

@@ -1,15 +1,12 @@
 import { test, expect } from 'bun:test'
-import {
-    getFeeInPeriod,
-    getCurrentBaseFeeNumerator,
-    getVariableFee,
-} from '../../src/math/feeMath'
+import { getBaseFeeNumerator, getVariableFee } from '../../src/math/feeMath'
 import BN from 'bn.js'
-import { FeeSchedulerMode } from '../../src/types'
+import { BaseFeeMode, TradeDirection } from '../../src/types'
+import { getFeeNumeratorOnExponentialFeeScheduler } from '../../src/math/feeScheduler'
 
 test('getFeeInPeriod calculation', () => {
     // Test case 1: No reduction
-    const result1 = getFeeInPeriod(
+    const result1 = getFeeNumeratorOnExponentialFeeScheduler(
         new BN(1000), // cliff fee
         new BN(0), // reduction factor
         0 // period as number, not BN
@@ -17,7 +14,7 @@ test('getFeeInPeriod calculation', () => {
     expect(result1.eq(new BN(1000))).toBe(true)
 
     // Test case 2: With reduction
-    const result2 = getFeeInPeriod(
+    const result2 = getFeeNumeratorOnExponentialFeeScheduler(
         new BN(1000), // cliff fee
         new BN(100), // 1% reduction factor
         1 // period as number, not BN
@@ -28,7 +25,11 @@ test('getFeeInPeriod calculation', () => {
 
 test('getFeeInPeriod with higher periods', () => {
     // Test with period > 1 to test binary exponentiation
-    const result = getFeeInPeriod(new BN(1000), new BN(100), 5)
+    const result = getFeeNumeratorOnExponentialFeeScheduler(
+        new BN(1000),
+        new BN(100),
+        5
+    )
 
     // Fee decreases with each period
     expect(result.lt(new BN(1000))).toBe(true)
@@ -36,40 +37,53 @@ test('getFeeInPeriod with higher periods', () => {
     expect(result.gte(new BN(0))).toBe(true)
 })
 
-test('getCurrentBaseFeeNumerator with linear mode', () => {
+test('getBaseFeeNumerator with linear mode', () => {
     const baseFee = {
         cliffFeeNumerator: new BN(1000),
-        feeSchedulerMode: FeeSchedulerMode.Linear,
-        numberOfPeriod: 10,
-        periodFrequency: new BN(100),
-        reductionFactor: new BN(50), // 50 per period
+        baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+        firstFactor: 10,
+        secondFactor: new BN(50), // 50 per period
+        thirdFactor: new BN(100),
     }
 
     // Before activation point
-    const result1 = getCurrentBaseFeeNumerator(baseFee, new BN(50), new BN(100))
+    const result1 = getBaseFeeNumerator(
+        baseFee,
+        TradeDirection.QuoteToBase,
+        new BN(50),
+        new BN(100)
+    )
+
     // Use max period (min fee)
-    expect(result1.eq(new BN(500))).toBe(true)
+    expect(result1.eq(new BN(0))).toBe(true)
 
     // After activation point, 2 periods elapsed
-    const result2 = getCurrentBaseFeeNumerator(
+    const result2 = getBaseFeeNumerator(
         baseFee,
+        TradeDirection.QuoteToBase,
         new BN(300),
         new BN(100)
     )
-    expect(result2.eq(new BN(900))).toBe(true)
+
+    expect(result2.eq(new BN(600))).toBe(true)
 })
 
-test('getCurrentBaseFeeNumerator with exponential mode', () => {
+test('getBaseFeeNumerator with exponential mode', () => {
     const baseFee = {
         cliffFeeNumerator: new BN(1000),
-        feeSchedulerMode: FeeSchedulerMode.Exponential,
-        numberOfPeriod: 5,
-        periodFrequency: new BN(100),
-        reductionFactor: new BN(100),
+        baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
+        firstFactor: 5,
+        secondFactor: new BN(100),
+        thirdFactor: new BN(100),
     }
 
     // After activation point, 3 periods elapsed
-    const result = getCurrentBaseFeeNumerator(baseFee, new BN(350), new BN(100))
+    const result = getBaseFeeNumerator(
+        baseFee,
+        TradeDirection.QuoteToBase,
+        new BN(350),
+        new BN(100)
+    )
 
     // Use exponential reduction
     expect(result.lt(new BN(1000))).toBe(true)
