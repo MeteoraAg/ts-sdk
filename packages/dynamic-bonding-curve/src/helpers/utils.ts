@@ -4,13 +4,22 @@ import { NATIVE_MINT } from '@solana/spl-token'
 import { BASIS_POINT_MAX, FEE_DENOMINATOR } from '../constants'
 import Decimal from 'decimal.js'
 
+export function convertToLamports(
+    amount: number | string,
+    tokenDecimal: number
+): BN {
+    const valueInLamports = new Decimal(amount).mul(
+        Decimal.pow(10, tokenDecimal)
+    )
+    return fromDecimalToBN(valueInLamports)
+}
 /**
  * Get BN value from decimal value after roundown
  * @param value - The decimal value
  * @returns value in BN after roundown
  */
 export function fromDecimalToBN(value: Decimal): BN {
-    return new BN(value.floor().toFixed());
+    return new BN(value.floor().toFixed())
 }
 
 /**

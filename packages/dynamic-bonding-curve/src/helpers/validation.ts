@@ -15,11 +15,17 @@ import { Connection, PublicKey } from '@solana/web3.js'
 import {
     getBaseTokenForSwap,
     getMigrationBaseToken,
+    getMigrationQuoteAmountFromMigrationQuoteThreshold,
     getMigrationThresholdPrice,
     getSwapAmountWithBuffer,
     getTotalTokenSupply,
 } from './common'
-import { isDefaultLockedVesting, isNativeSol } from './utils'
+import {
+    convertDecimalToBN,
+    isDefaultLockedVesting,
+    isNativeSol,
+} from './utils'
+import Decimal from 'decimal.js'
 
 /**
  * Validate the pool fees
@@ -380,7 +386,12 @@ export function validateConfigParameters(
         )
 
         const migrationBaseAmount = getMigrationBaseToken(
-            configParam.migrationQuoteThreshold,
+            convertDecimalToBN(
+                getMigrationQuoteAmountFromMigrationQuoteThreshold(
+                    new Decimal(configParam.migrationQuoteThreshold.toString()),
+                    configParam.migrationFee.feePercentage
+                )
+            ),
             sqrtMigrationPrice,
             configParam.migrationOption
         )

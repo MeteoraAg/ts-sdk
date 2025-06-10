@@ -7,7 +7,9 @@
     - [createConfig](#createConfig)
     - [createPartnerMetadata](#createPartnerMetadata)
     - [claimPartnerTradingFee](#claimPartnerTradingFee)
+    - [claimPartnerTradingFee2](#claimPartnerTradingFee2)
     - [partnerWithdrawSurplus](#partnerWithdrawSurplus)
+    - [partnerWithdrawMigrationFee](#partnerWithdrawMigrationFee)
 
 - [Build Curve Functions](#build-curve-functions)
 
@@ -21,9 +23,10 @@
     - [createPool](#createPool)
     - [createConfigAndPool](#createConfigAndPool)
     - [createConfigAndPoolWithFirstBuy](#createConfigAndPoolWithFirstBuy)
-    - [createPoolAndBuy](#createPoolAndBuy)
+    - [createPoolWithFirstBuy](#createPoolWithFirstBuy)
     - [swap](#swap)
     - [swapQuote](#swapQuote)
+    - [swapQuoteExactIn](#swapQuoteExactIn)
 
 - [Migration Functions](#migration-functions)
 
@@ -40,7 +43,10 @@
 
     - [createPoolMetadata](#createPoolMetadata)
     - [claimCreatorTradingFee](#claimCreatorTradingFee)
+    - [claimCreatorTradingFee2](#claimCreatorTradingFee2)
     - [creatorWithdrawSurplus](#creatorWithdrawSurplus)
+    - [creatorWithdrawMigrationFee](#creatorWithdrawMigrationFee)
+    - [transferPoolCreator](#transferPoolCreator)
 
 - [State Functions](#state-functions)
 
@@ -50,6 +56,7 @@
     - [getPool](#getPool)
     - [getPools](#getPools)
     - [getPoolsByConfig](#getPoolsByConfig)
+    - [getPoolsByCreator](#getPoolsByCreator)
     - [getPoolByBaseMint](#getPoolByBaseMint)
     - [getPoolMigrationQuoteThreshold](#getPoolMigrationQuoteThreshold)
     - [getPoolCurveProgress](#getPoolCurveProgress)
@@ -59,10 +66,8 @@
     - [getDammV1MigrationMetadata](#getDammV1MigrationMetadata)
     - [getDammV2MigrationMetadata](#getDammV2MigrationMetadata)
     - [getPoolFeeMetrics](#getPoolFeeMetrics)
-    - [getPoolCreatorFeeMetrics](#getPoolCreatorFeeMetrics)
-    - [getPoolPartnerFeeMetrics](#getPoolPartnerFeeMetrics)
-    - [getPoolsQuoteFeesByConfig](#getPoolsQuoteFeesByConfig)
-    - [getPoolsBaseFeesByConfig](#getPoolsBaseFeesByConfig)
+    - [getPoolsFeesByConfig](#getPoolsFeesByConfig)
+    - [getPoolsFeesByCreator](#getPoolsFeesByCreator)
 
 - [Helper Functions](#helper-functions)
 
@@ -384,6 +389,94 @@ const transaction = await client.partner.claimPartnerTradingFee({
 - The feeClaimer of the pool must be the same as the feeClaimer in the `ClaimTradingFeeParam` params.
 - You can indicate maxBaseAmount or maxQuoteAmount to be 0 to not claim Base or Quote tokens respectively.
 - If you indicated a `receiver`, the receiver **is not** required to sign the transaction, however, you must provide a `tempWSolAcc` if the receiver != creato and if the quote mint is SOL.
+
+---
+
+### claimPartnerTradingFee2
+
+Claims the trading fee for the partner. A partner is the `feeClaimer` in the config key.
+
+#### Function
+
+```typescript
+async claimPartnerTradingFee2(claimTradingFee2Param: ClaimTradingFee2Param): Promise<Transaction>
+```
+
+#### Parameters
+
+```typescript
+interface ClaimTradingFeeParam {
+    pool: PublicKey // The pool address
+    feeClaimer: PublicKey // The wallet that will claim the fee
+    payer: PublicKey // The wallet that will pay for the transaction
+    maxBaseAmount: BN // The maximum base amount to claim (use 0 to not claim base tokens)
+    maxQuoteAmount: BN // The maximum quote amount to claim (use 0 to not claim quote tokens)
+    receiver?: PublicKey | null // The wallet that will receive the tokens
+}
+```
+
+#### Returns
+
+A transaction that can be signed and sent to the network.
+
+#### Example
+
+```typescript
+const transaction = await client.partner.claimPartnerTradingFee2({
+    pool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    feeClaimer: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+    payer: new PublicKey('payer1234567890abcdefghijklmnopqrstuvwxyz'),
+    maxBaseAmount: new BN(1000000),
+    maxQuoteAmount: new BN(1000000),
+    receiver: new PublicKey('receiver1234567890abcdefghijklmnopqrstuvwxyz'),
+})
+```
+
+#### Notes
+
+- The feeClaimer of the pool must be the same as the feeClaimer in the `ClaimTradingFee2Param` params.
+- You can indicate maxBaseAmount or maxQuoteAmount to be 0 to not claim Base or Quote tokens respectively.
+- Can be used in case the partner is a squad multisig account.
+
+---
+
+### partnerWithdrawMigrationFee
+
+Withdraws the partner's migration fee from the pool.
+
+#### Function
+
+```typescript
+async partnerWithdrawMigrationFee(withdrawMigrationFeeParam: WithdrawMigrationFeeParam): Promise<Transaction>
+```
+
+#### Parameters
+
+```typescript
+interface WithdrawMigrationFeeParam {
+    virtualPool: PublicKey // The virtual pool address
+    sender: PublicKey // The wallet that will claim the fee
+    feePayer?: PublicKey // The wallet that will pay for the transaction
+}
+```
+
+#### Returns
+
+A transaction that can be signed and sent to the network.
+
+#### Example
+
+```typescript
+const transaction = await client.partner.partnerWithdrawMigrationFee({
+    virtualPool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    sender: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+    feePayer: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+})
+```
+
+#### Notes
+
+- The sender of the pool must be the same as the partner (`feeClaimer`) in the config key.
 
 ---
 
@@ -1249,7 +1342,6 @@ interface CreateConfigAndPoolWithFirstBuyParam {
     swapBuyParam: {
         buyAmount: BN // The amount of tokens to buy
         minimumAmountOut: BN // The minimum amount of tokens to receive
-        quoteMintTokenAccount: PublicKey // The quote mint token account (ATA)
         referralTokenAccount: PublicKey | null // The referral token account (optional)
     }
 }
@@ -1257,7 +1349,7 @@ interface CreateConfigAndPoolWithFirstBuyParam {
 
 #### Returns
 
-A transaction that requires signatures from the payer, the poolCreator, the baseMint keypair, and the config keypair before being submitted to the network.
+An object of transactions (containing createConfigTx, createPoolTx, and swapBuyTx) that requires signatures before being submitted to the network.
 
 #### Example
 
@@ -1346,30 +1438,26 @@ const transaction = await client.pool.createConfigAndPoolWithFirstBuy({
 #### Notes
 
 - The payer must be the same as the payer in the `CreateConfigAndPoolWithFirstBuyParam` params.
-- The poolCreator is required to sign when creating the pool.
-- The baseMint token type must be the same as the config key's token type.
-- The poolCreator will be the buyer for the first buy.
-- You can use any of the build curve functions to create the curve configuration.
-- This function does not handle wrapping or unwrapping of SOL, as well as ATA creation for the quote mint. So you will need to
-    - Use `prepareTokenAccountTx` if your quoteMint is SOL or if you require quoteMint ATA creation
-    - Use `cleanUpTokenAccountTx` to unwrap SOL and close the ATA.
+- The `createConfigTx` requires the payer and config to sign the transaction.
+- The `createPoolTx` requires the payer, poolCreator, and baseMint to sign the transaction.
+- The `swapBuyTx` requires the poolCreator and payer to sign the transaction.
 
 ---
 
-### createPoolAndBuy
+### createPoolWithFirstBuy
 
 Creates a new pool with the config key and buys the token immediately.
 
 #### Function
 
 ```typescript
-async createPoolAndBuy(createPoolAndBuyParam: CreatePoolAndBuyParam): Promise<Transaction>
+async createPoolWithFirstBuy(createPoolWithFirstBuyParam: CreatePoolWithFirstBuyParam): Promise<Transaction>
 ```
 
 #### Parameters
 
 ```typescript
-interface CreatePoolAndBuyParam {
+interface CreatePoolWithFirstBuyParam {
     createPoolParam: {
         baseMint: PublicKey // The base mint address (generated by you)
         config: PublicKey // The config account address
@@ -1392,7 +1480,7 @@ A transaction that requires signatures from the payer, the baseMint keypair, and
 #### Example
 
 ```typescript
-const transaction = await client.pool.createPoolAndBuy({
+const transaction = await client.pool.createPoolWithFirstBuy({
     createPoolParam: {
         baseMint: new PublicKey('0987654321zyxwvutsrqponmlkjihgfedcba'),
         config: new PublicKey('1234567890abcdefghijklmnopqrstuvwxyz'),
@@ -1410,7 +1498,7 @@ const transaction = await client.pool.createPoolAndBuy({
 
 #### Notes
 
-- The `payer` must be the same as the payer in the `CreatePoolAndBuyParam` params.
+- The `payer` must be the same as the payer in the `CreatePoolWithFirstBuyParam` params.
 - The `poolCreator` is required to sign when creating the pool.
 - The `baseMint` token type must be the same as the config key's token type.
 - The `buyAmount` must be greater than 0.
@@ -1426,7 +1514,7 @@ Swaps between base and quote or quote and base on the Dynamic Bonding Curve.
 #### Function
 
 ```typescript
-async swap(pool: PublicKey, swapParam: SwapParam): Promise<Transaction>
+async swap(swapParam: SwapParam): Promise<Transaction>
 ```
 
 #### Parameters
@@ -1454,7 +1542,7 @@ const transaction = await client.pool.swap({
     amountIn: new BN(1000000000),
     minimumAmountOut: new BN(0),
     swapBaseForQuote: false,
-    poolAddress: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    pool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
     referralTokenAccount: null,
 })
 ```
@@ -1507,6 +1595,7 @@ const virtualPoolState = await client.state.getPool(poolAddress)
 const poolConfigState = await client.state.getPoolConfig(
     virtualPoolState.config
 )
+const currentSlot = await connection.getSlot()
 
 const quote = await client.pool.swapQuote({
     virtualPool: virtualPoolState, // The virtual pool state
@@ -1515,7 +1604,7 @@ const quote = await client.pool.swapQuote({
     amountIn: new BN(100000000), // The amount of tokens to swap
     slippageBps: 100, // The slippage in basis points (optional)
     hasReferral: false, // Whether to include a referral fee
-    currentPoint: new BN(0), // The current point
+    currentPoint: new BN(currentSlot), // The current point
 })
 ```
 
@@ -1527,6 +1616,53 @@ const quote = await client.pool.swapQuote({
 - The `amountIn` is the amount of tokens you want to swap, denominated in the smallest unit and token decimals. (e.g., lamports for SOL).
 - The `slippageBps` parameter is the slippage in basis points (optional). This will calculate the minimum amount out based on the slippage.
 - The `hasReferral` parameter indicates whether a referral fee should be included in the calculation.
+- The `currentPoint` parameter is typically used in cases where the config has applied a fee scheduler. If activationType == 0, then it is current slot. If activationType == 1, then it is the current block timestamp. You can fill in accordingly based on slot or timestamp.
+
+---
+
+### swapQuoteExactIn
+
+Gets the exact swap quotation in between quote and base swaps.
+
+#### Function
+
+```typescript
+swapQuoteExactIn(swapQuoteExactInParam: SwapQuoteExactInParam): Promise<QuoteResult>
+```
+
+#### Parameters
+
+```typescript
+interface SwapQuoteExactInParam {
+    virtualPool: VirtualPool
+    config: PoolConfig
+    currentPoint: BN
+}
+```
+
+#### Returns
+
+The exact quote in result of the swap.
+
+#### Example
+
+```typescript
+const virtualPoolState = await client.state.getPool(poolAddress)
+const poolConfigState = await client.state.getPoolConfig(
+    virtualPoolState.config
+)
+const currentSlot = await connection.getSlot()
+
+const quote = await client.pool.swapQuoteExactIn({
+    virtualPool: virtualPoolState, // The virtual pool state
+    config: poolConfigState, // The pool config state
+    currentPoint: new BN(currentSlot), // The current point
+})
+```
+
+#### Notes
+
+- This function helps to get the exact number of quote tokens to swap to hit the `migrationQuoteThreshold` in the config key.
 - The `currentPoint` parameter is typically used in cases where the config has applied a fee scheduler. If activationType == 0, then it is current slot. If activationType == 1, then it is the current block timestamp. You can fill in accordingly based on slot or timestamp.
 
 ---
@@ -1948,6 +2084,8 @@ const transaction = await client.creator.createPoolMetadata({
 })
 ```
 
+---
+
 ### claimCreatorTradingFee
 
 Claims a creator trading fee. If your pool's config key has `creatorTradingFeePercentage` > 0, you can use this function to claim the trading fee for the pool creator.
@@ -2000,6 +2138,54 @@ const transaction = await client.creator.claimCreatorTradingFee({
 
 ---
 
+### claimCreatorTradingFee2
+
+Claims a creator trading fee. If your pool's config key has `creatorTradingFeePercentage` > 0, you can use this function to claim the trading fee for the pool creator.
+
+#### Function
+
+```typescript
+async claimCreatorTradingFee2(claimCreatorTradingFee2Param: ClaimCreatorTradingFee2Param): Promise<Transaction>
+```
+
+#### Parameters
+
+```typescript
+interface ClaimCreatorTradingFeeParam {
+    creator: PublicKey // The creator of the pool
+    payer: PublicKey // The payer of the transaction
+    pool: PublicKey // The pool address
+    maxBaseAmount: BN // The maximum amount of base tokens to claim
+    maxQuoteAmount: BN // The maximum amount of quote tokens to claim
+    receiver?: PublicKey | null // The wallet that will receive the tokens
+}
+```
+
+#### Returns
+
+A transaction that can be signed and sent to the network.
+
+#### Example
+
+```typescript
+const transaction = await client.creator.claimCreatorTradingFee({
+    creator: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+    payer: new PublicKey('payer1234567890abcdefghijklmnopqrstuvwxyz'),
+    pool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    maxBaseAmount: new BN(1000000000),
+    maxQuoteAmount: new BN(1000000000),
+    receiver: new PublicKey('receiver1234567890abcdefghijklmnopqrstuvwxyz'),
+})
+```
+
+#### Notes
+
+- The creator of the pool must be the same as the creator in the `ClaimCreatorTradingFee2Param` params.
+- You can indicate maxBaseAmount or maxQuoteAmount to be 0 to not claim Base or Quote tokens respectively.
+- Can be used in case the creator is a squad multisig account.
+
+---
+
 ### creatorWithdrawSurplus
 
 Withdraws surplus tokens from the pool.
@@ -2035,6 +2221,86 @@ const transaction = await client.creator.creatorWithdrawSurplus({
 #### Notes
 
 - The creator of the pool must be the same as the creator in the `CreatorWithdrawSurplusParam` params.
+
+---
+
+### creatorWithdrawMigrationFee
+
+Withdraws the creator's migration fee from the pool.
+
+#### Function
+
+```typescript
+async creatorWithdrawMigrationFee(withdrawMigrationFeeParam: WithdrawMigrationFeeParam): Promise<Transaction>
+```
+
+#### Parameters
+
+```typescript
+interface WithdrawMigrationFeeParam {
+    virtualPool: PublicKey // The virtual pool address
+    sender: PublicKey // The wallet that will claim the fee
+    feePayer?: PublicKey // The wallet that will pay for the transaction
+}
+```
+
+#### Returns
+
+A transaction that can be signed and sent to the network.
+
+#### Example
+
+```typescript
+const transaction = await client.creator.creatorWithdrawMigrationFee({
+    virtualPool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    sender: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+    feePayer: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+})
+```
+
+#### Notes
+
+- The sender of the pool must be the same as the creator (`poolCreator`) in the virtual pool.
+
+---
+
+### transferPoolCreator
+
+Transfers the pool creator to a new wallet.
+
+#### Function
+
+```typescript
+async transferPoolCreator(transferPoolCreatorParam: TransferPoolCreatorParam): Promise<Transaction>
+```
+
+#### Parameters
+
+```typescript
+interface TransferPoolCreatorParam {
+    virtualPool: PublicKey // The virtual pool address
+    creator: PublicKey // The current creator of the pool
+    newCreator: PublicKey // The new creator of the pool
+}
+```
+
+#### Returns
+
+A transaction that can be signed and sent to the network.
+
+#### Example
+
+```typescript
+const transaction = await client.creator.transferPoolCreator({
+    virtualPool: new PublicKey('abcdefghijklmnopqrstuvwxyz1234567890'),
+    creator: new PublicKey('boss1234567890abcdefghijklmnopqrstuvwxyz'),
+    newCreator: new PublicKey('newCreator1234567890abcdefghijklmnopqrstuvwxyz'),
+})
+```
+
+#### Notes
+
+- The creator of the pool must be the signer of the transaction.
 
 ---
 
@@ -2192,6 +2458,34 @@ An array of pools.
 
 ```typescript
 const pools = await client.state.getPoolsByConfig(configAddress)
+```
+
+---
+
+### getPoolsByCreator
+
+Retrieves all pools by creator address.
+
+#### Function
+
+```typescript
+async getPoolsByCreator(creatorAddress: PublicKey | string): Promise<ProgramAccount<VirtualPool>[]>
+```
+
+#### Parameters
+
+```typescript
+creatorAddress: PublicKey | string // The address of the creator
+```
+
+#### Returns
+
+An array of pools.
+
+#### Example
+
+```typescript
+const pools = await client.state.getPoolsByCreator(creatorAddress)
 ```
 
 ---
@@ -2459,79 +2753,20 @@ const metrics = await client.state.getPoolFeeMetrics(poolAddress)
 
 ---
 
-### getPoolCreatorFeeMetrics
+### getPoolsFeesByConfig
 
-Gets the creator fee metrics for a specific pool.
-
-#### Function
-
-```typescript
-async getPoolCreatorFeeMetrics(poolAddress: PublicKey): Promise<{
-    creatorBaseFee: BN
-    creatorQuoteFee: BN
-}>
-```
-
-#### Parameters
-
-```typescript
-poolAddress: PublicKey // The address of the pool
-```
-
-#### Returns
-
-An object containing the creator's fee metrics.
-
-#### Example
-
-```typescript
-const metrics = await client.state.getPoolCreatorFeeMetrics(poolAddress)
-```
-
----
-
-### getPoolPartnerFeeMetrics
-
-Gets the partner fee metrics for a specific pool.
+Gets all fees for pools linked to a specific config key.
 
 #### Function
 
 ```typescript
-async getPoolPartnerFeeMetrics(poolAddress: PublicKey): Promise<{
+async getPoolsFeesByConfig(configAddress: PublicKey): Promise<Array<{
+    poolAddress: PublicKey
     partnerBaseFee: BN
     partnerQuoteFee: BN
-}>
-```
-
-#### Parameters
-
-```typescript
-poolAddress: PublicKey // The address of the pool
-```
-
-#### Returns
-
-An object containing the partner's fee metrics.
-
-#### Example
-
-```typescript
-const metrics = await client.state.getPoolPartnerFeeMetrics(poolAddress)
-```
-
----
-
-### getPoolsQuoteFeesByConfig
-
-Gets all quote fees for pools linked to a specific config key.
-
-#### Function
-
-```typescript
-async getPoolsQuoteFeesByConfig(configAddress: PublicKey): Promise<Array<{
-    poolAddress: PublicKey
-    partnerQuoteFee: BN
+    creatorBaseFee: BN
     creatorQuoteFee: BN
+    totalTradingBaseFee: BN
     totalTradingQuoteFee: BN
 }>>
 ```
@@ -2549,40 +2784,43 @@ An array of objects containing quote fee metrics for each pool.
 #### Example
 
 ```typescript
-const fees = await client.state.getPoolsQuoteFeesByConfig(configAddress)
+const fees = await client.state.getPoolsFeesByConfig(configAddress)
 ```
 
 ---
 
-### getPoolsBaseFeesByConfig
+### getPoolsFeesByCreator
 
-Gets all base fees for pools linked to a specific config key.
+Gets all fees for pools linked to a specific creator.
 
 #### Function
 
 ```typescript
-async getPoolsBaseFeesByConfig(configAddress: PublicKey): Promise<Array<{
+async getPoolsFeesByCreator(creatorAddress: PublicKey): Promise<Array<{
     poolAddress: PublicKey
     partnerBaseFee: BN
+    partnerQuoteFee: BN
     creatorBaseFee: BN
+    creatorQuoteFee: BN
     totalTradingBaseFee: BN
+    totalTradingQuoteFee: BN
 }>>
 ```
 
 #### Parameters
 
 ```typescript
-configAddress: PublicKey // The address of the pool config
+creatorAddress: PublicKey // The address of the creator
 ```
 
 #### Returns
 
-An array of objects containing base fee metrics for each pool.
+An array of objects containing quote fee metrics for each pool.
 
 #### Example
 
 ```typescript
-const fees = await client.state.getPoolsBaseFeesByConfig(configAddress)
+const fees = await client.state.getPoolsFeesByCreator(creatorAddress)
 ```
 
 ---

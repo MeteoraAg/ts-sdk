@@ -1,12 +1,18 @@
 import BN from 'bn.js'
 import { SafeMath } from './safeMath'
+import { mulDiv } from './utilsMath'
 import {
     getDeltaAmountBaseUnsigned,
     getDeltaAmountQuoteUnsigned,
     getNextSqrtPriceFromInput,
 } from './curve'
-import { getFeeOnAmount } from './feeMath'
 import {
+    getCurrentBaseFeeNumerator,
+    getFeeOnAmount,
+    getVariableFee,
+} from './feeMath'
+import {
+    CollectFeeMode,
     GetFeeMode,
     Rounding,
     TradeDirection,
@@ -17,6 +23,7 @@ import {
     type SwapAmount,
     type VirtualPool,
 } from '../types'
+import { FEE_DENOMINATOR, MAX_FEE_NUMERATOR } from '../constants'
 
 /**
  * Get swap result
@@ -424,4 +431,58 @@ export async function swapQuote(
     }
 
     return result
+}
+
+/**
+ * Calculate the required quote amount for exact input
+ * @param migrationQuoteThreshold Migration quote threshold
+ * @param quoteReserve Current quote reserve
+ * @param collectFeeMode Fee collection mode
+ * @param config Pool config state
+ * @param currentPoint Current point
+ * @returns Required quote amount
+ */
+export function calculateQuoteExactInAmount(
+    config: PoolConfig,
+    virtualPool: VirtualPool,
+    currentPoint: BN
+): BN {
+    if (virtualPool.quoteReserve.gte(config.migrationQuoteThreshold)) {
+        return new BN(0)
+    }
+
+    const amountInAfterFee = config.migrationQuoteThreshold.sub(
+        virtualPool.quoteReserve
+    )
+
+    if (config.collectFeeMode === CollectFeeMode.OnlyQuote) {
+        const baseFeeNumerator = getCurrentBaseFeeNumerator(
+            config.poolFees.baseFee,
+            currentPoint,
+            virtualPool.activationPoint
+        )
+
+        let totalFeeNumerator = baseFeeNumerator
+        if (config.poolFees.dynamicFee.initialized !== 0) {
+            const variableFee = getVariableFee(
+                config.poolFees.dynamicFee,
+                virtualPool.volatilityTracker
+            )
+            totalFeeNumerator = SafeMath.add(totalFeeNumerator, variableFee)
+        }
+
+        // cap at MAX_FEE_NUMERATOR
+        totalFeeNumerator = BN.min(totalFeeNumerator, new BN(MAX_FEE_NUMERATOR))
+
+        // amountIn = amountInAfterFee * FEE_DENOMINATOR / (FEE_DENOMINATOR - effectiveFeeNumerator)
+        const denominator = new BN(FEE_DENOMINATOR).sub(totalFeeNumerator)
+        return mulDiv(
+            amountInAfterFee,
+            new BN(FEE_DENOMINATOR),
+            denominator,
+            Rounding.Up
+        )
+    } else {
+        return amountInAfterFee
+    }
 }

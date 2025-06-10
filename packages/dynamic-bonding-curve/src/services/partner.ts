@@ -15,6 +15,7 @@ import {
     type PartnerWithdrawSurplusParam,
     ClaimPartnerTradingFeeWithQuoteMintNotSolParam,
     ClaimPartnerTradingFeeWithQuoteMintSolParam,
+    ClaimTradingFee2Param,
     WithdrawMigrationFeeParam,
 } from '../types'
 import {
@@ -160,7 +161,8 @@ export class PartnerService extends DynamicBondingCurveProgram {
                 payer,
                 tokenBaseAccount,
                 feeReceiver,
-                poolState.baseMint
+                poolState.baseMint,
+                tokenBaseProgram
             )
         createTokenBaseAccountIx &&
             preInstructions.push(createTokenBaseAccountIx)
@@ -170,7 +172,8 @@ export class PartnerService extends DynamicBondingCurveProgram {
                 payer,
                 tokenQuoteAccount,
                 tempWSolAcc,
-                poolConfigState.quoteMint
+                poolConfigState.quoteMint,
+                tokenQuoteProgram
             )
         createTokenQuoteAccountIx &&
             preInstructions.push(createTokenQuoteAccountIx)
@@ -352,6 +355,124 @@ export class PartnerService extends DynamicBondingCurveProgram {
     }
 
     /**
+     * Claim partner trading fee
+     * @param claimTradingFee2Param - The parameters for the claim trading fee
+     * @returns A claim trading fee transaction
+     */
+    async claimPartnerTradingFee2(
+        claimTradingFee2Param: ClaimTradingFee2Param
+    ): Promise<Transaction> {
+        const {
+            feeClaimer,
+            payer,
+            pool,
+            maxBaseAmount,
+            maxQuoteAmount,
+            receiver,
+        } = claimTradingFee2Param
+
+        const poolState = await this.state.getPool(pool)
+
+        if (!poolState) {
+            throw new Error(`Pool not found: ${pool.toString()}`)
+        }
+
+        const poolConfigState = await this.state.getPoolConfig(poolState.config)
+
+        if (!poolConfigState) {
+            throw new Error(`Pool config not found: ${pool.toString()}`)
+        }
+
+        const tokenBaseProgram = getTokenProgram(poolConfigState.tokenType)
+        const tokenQuoteProgram = getTokenProgram(
+            poolConfigState.quoteTokenFlag
+        )
+
+        const isSOLQuoteMint = isNativeSol(poolConfigState.quoteMint)
+
+        if (isSOLQuoteMint) {
+            const preInstructions: TransactionInstruction[] = []
+            const postInstructions: TransactionInstruction[] = []
+
+            const tokenBaseAccount = findAssociatedTokenAddress(
+                receiver,
+                poolState.baseMint,
+                tokenBaseProgram
+            )
+
+            const tokenQuoteAccount = findAssociatedTokenAddress(
+                feeClaimer,
+                poolConfigState.quoteMint,
+                tokenQuoteProgram
+            )
+
+            const createTokenBaseAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenBaseAccount,
+                    receiver,
+                    poolState.baseMint,
+                    tokenBaseProgram
+                )
+            createTokenBaseAccountIx &&
+                preInstructions.push(createTokenBaseAccountIx)
+
+            const createTokenQuoteAccountIx =
+                createAssociatedTokenAccountIdempotentInstruction(
+                    payer,
+                    tokenQuoteAccount,
+                    feeClaimer,
+                    poolConfigState.quoteMint,
+                    tokenQuoteProgram
+                )
+            createTokenQuoteAccountIx &&
+                preInstructions.push(createTokenQuoteAccountIx)
+
+            const unwrapSolIx = unwrapSOLInstruction(feeClaimer, receiver)
+            unwrapSolIx && postInstructions.push(unwrapSolIx)
+
+            const accounts = {
+                poolAuthority: this.poolAuthority,
+                pool,
+                tokenAAccount: tokenBaseAccount,
+                tokenBAccount: tokenQuoteAccount,
+                baseVault: poolState.baseVault,
+                quoteVault: poolState.quoteVault,
+                baseMint: poolState.baseMint,
+                quoteMint: poolConfigState.quoteMint,
+                feeClaimer,
+                tokenBaseProgram,
+                tokenQuoteProgram,
+            }
+
+            return this.program.methods
+                .claimTradingFee(maxBaseAmount, maxQuoteAmount)
+                .accountsPartial(accounts)
+                .preInstructions(preInstructions)
+                .postInstructions(postInstructions)
+                .transaction()
+        } else {
+            const result = await this.claimWithQuoteMintNotSol({
+                feeClaimer,
+                payer,
+                feeReceiver: receiver,
+                config: poolState.config,
+                pool,
+                poolState,
+                poolConfigState,
+                tokenBaseProgram,
+                tokenQuoteProgram,
+            })
+            return this.program.methods
+                .claimTradingFee(maxBaseAmount, maxQuoteAmount)
+                .accountsPartial(result.accounts)
+                .preInstructions(result.preInstructions)
+                .postInstructions([])
+                .transaction()
+        }
+    }
+
+    /**
      * Partner withdraw surplus
      * @param partnerWithdrawSurplusParam - The parameters for the partner withdraw surplus
      * @returns A partner withdraw surplus transaction
@@ -414,7 +535,7 @@ export class PartnerService extends DynamicBondingCurveProgram {
             .transaction()
     }
 
-    async withdrawMigrationFee(
+    async partnerWithdrawMigrationFee(
         withdrawMigrationFeeParams: WithdrawMigrationFeeParam
     ): Promise<Transaction> {
         const { virtualPool, sender, feePayer } = withdrawMigrationFeeParams

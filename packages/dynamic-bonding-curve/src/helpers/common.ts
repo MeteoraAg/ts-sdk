@@ -34,7 +34,12 @@ import { pow } from '../math/safeMath'
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { DynamicBondingCurve } from '../idl/dynamic-bonding-curve/idl'
 import { Program } from '@coral-xyz/anchor'
-import { bpsToFeeNumerator, feeNumeratorToBps, fromDecimalToBN } from './utils'
+import {
+    bpsToFeeNumerator,
+    convertToLamports,
+    feeNumeratorToBps,
+    fromDecimalToBN,
+} from './utils'
 
 /**
  * Get the first key
@@ -430,16 +435,26 @@ export const getFirstCurve = (
     // Swap_amount = L *(1/Pmin - 1/Pmax) = L * (Pmax - Pmin) / (Pmax * Pmin)       (1)
     // Quote_amount = L * (Pmax - Pmin)                                             (2)
     // (Quote_amount * (1-migrationFeePercent/100) / Migration_amount = Pmax ^ 2    (3)
-
+    const migrationSqrPriceDecimal = new Decimal(migrationSqrtPrice.toString())
+    const migrationBaseAmountDecimal = new Decimal(
+        migrationBaseAmount.toString()
+    )
+    const swapAmountDecimal = new Decimal(swapAmount.toString())
+    const migrationFeePercentDecimal = new Decimal(
+        migrationFeePercent.toString()
+    )
     // From (1) and (2) => Quote_amount / Swap_amount = (Pmax * Pmin)               (4)
     // From (3) and (4) => Swap_amount * (1-migrationFeePercent/100) / Migration_amount = Pmax / Pmin
     // => Pmin = Pmax * Migration_amount / (Swap_amount * (1-migrationFeePercent/100))
-    const denominator = swapAmount
-        .mul(new BN(100).sub(new BN(migrationFeePercent)))
-        .div(new BN(100))
-    const sqrtStartPrice = migrationSqrtPrice
-        .mul(migrationBaseAmount)
+    const denominator = swapAmountDecimal
+        .mul(new Decimal(100).sub(migrationFeePercentDecimal))
+        .div(new Decimal(100))
+
+    const sqrtStartPriceDecimal = migrationSqrPriceDecimal
+        .mul(migrationBaseAmountDecimal)
         .div(denominator)
+
+    const sqrtStartPrice = new BN(sqrtStartPriceDecimal.floor().toFixed())
 
     const liquidity = getLiquidity(
         swapAmount,
@@ -894,14 +909,15 @@ export function getLockedVestingParams(
 
     if (totalLockedVestingAmount == cliffUnlockAmount) {
         return {
-            amountPerPeriod: new BN(1).mul(
-                new BN(10).pow(new BN(tokenBaseDecimal))
+            amountPerPeriod: convertToLamports(1, tokenBaseDecimal),
+            cliffDurationFromMigrationTime: new BN(
+                cliffDurationFromMigrationTime
             ),
-            cliffDurationFromMigrationTime: new BN(1),
             frequency: new BN(1),
             numberOfPeriod: new BN(1),
-            cliffUnlockAmount: new BN(totalLockedVestingAmount - 1).mul(
-                new BN(10).pow(new BN(tokenBaseDecimal))
+            cliffUnlockAmount: convertToLamports(
+                totalLockedVestingAmount - 1,
+                tokenBaseDecimal
             ),
         }
     }
@@ -940,14 +956,16 @@ export function getLockedVestingParams(
     const periodFrequency = new BN(totalVestingDuration / numberOfVestingPeriod)
 
     return {
-        amountPerPeriod: new BN(roundedAmountPerPeriod.toString()).mul(
-            new BN(10).pow(new BN(tokenBaseDecimal))
+        amountPerPeriod: convertToLamports(
+            roundedAmountPerPeriod,
+            tokenBaseDecimal
         ),
         cliffDurationFromMigrationTime: new BN(cliffDurationFromMigrationTime),
         frequency: periodFrequency,
         numberOfPeriod: new BN(numberOfVestingPeriod),
-        cliffUnlockAmount: new BN(adjustedCliffUnlockAmount.toString()).mul(
-            new BN(10).pow(new BN(tokenBaseDecimal))
+        cliffUnlockAmount: convertToLamports(
+            adjustedCliffUnlockAmount,
+            tokenBaseDecimal
         ),
     }
 }

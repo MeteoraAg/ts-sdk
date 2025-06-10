@@ -75,7 +75,7 @@ describe('calculateLockedVesting tests', () => {
         const numberOfVestingPeriod = 1
         const cliffUnlockAmount = 20000000
         const totalVestingDuration = 1
-        const cliffDurationFromMigrationTime = 0
+        const cliffDurationFromMigrationTime = 1000 * 365 * 24 * 60 * 60
 
         const result = getLockedVestingParams(
             totalLockedVestingAmount,

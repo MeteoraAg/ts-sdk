@@ -29,7 +29,7 @@ import {
     getFlatCurve,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
-import { convertDecimalToBN, fromDecimalToBN } from './utils'
+import { convertDecimalToBN, convertToLamports, fromDecimalToBN } from './utils'
 
 /**
  * Build a custom constant product curve
@@ -96,9 +96,7 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         .mul(new BN(percentageSupplyOnMigration))
         .div(new BN(100))
 
-    const totalSupply = new BN(totalTokenSupply).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    const totalSupply = convertToLamports(totalTokenSupply, tokenBaseDecimal)
 
     const migrationQuoteAmount =
         getMigrationQuoteAmountFromMigrationQuoteThreshold(
@@ -110,25 +108,25 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         new Decimal(migrationBaseSupply.toString())
     )
 
-    let migrationQuoteThresholdInLamport = new BN(
-        migrationQuoteThreshold * 10 ** tokenQuoteDecimal
+    let migrationQuoteThresholdInLamport = convertToLamports(
+        migrationQuoteThreshold,
+        tokenQuoteDecimal
     )
 
-    const totalLeftover = new BN(leftover).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    const totalLeftover = convertToLamports(leftover, tokenBaseDecimal)
 
     const migrateSqrtPrice = getSqrtPriceFromPrice(
         migrationPrice.toString(),
         tokenBaseDecimal,
         tokenQuoteDecimal
     )
-    let migrationQuoteAmountInLamport = new BN(
-        migrationQuoteThreshold * 10 ** tokenQuoteDecimal
+
+    let migrationQuoteAmountInLamport = fromDecimalToBN(
+        migrationQuoteAmount.mul(new Decimal(10 ** tokenQuoteDecimal))
     )
 
     const migrationBaseAmount = getMigrationBaseToken(
-        new BN(migrationQuoteAmountInLamport),
+        migrationQuoteAmountInLamport,
         migrateSqrtPrice,
         migrationOption
     )
@@ -242,9 +240,7 @@ export function buildCurveWithMarketCap(
         tokenBaseDecimal
     )
 
-    const totalSupply = new BN(totalTokenSupply).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    const totalSupply = convertToLamports(totalTokenSupply, tokenBaseDecimal)
 
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
         new Decimal(initialMarketCap),
@@ -338,9 +334,7 @@ export function buildCurveWithTwoSegments(
         .mul(new BN(percentageSupplyOnMigration))
         .div(new BN(100))
 
-    let totalSupply = new BN(totalTokenSupply).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    let totalSupply = convertToLamports(totalTokenSupply, tokenBaseDecimal)
     let migrationQuoteAmount = getMigrationQuoteAmount(
         new Decimal(migrationMarketCap),
         new Decimal(percentageSupplyOnMigration)
@@ -358,6 +352,7 @@ export function buildCurveWithTwoSegments(
     let migrationQuoteThresholdInLamport = fromDecimalToBN(
         migrationQuoteThreshold.mul(new Decimal(10 ** tokenQuoteDecimal))
     )
+
     let migrationQuoteAmountInLamport = fromDecimalToBN(
         migrationQuoteAmount.mul(new Decimal(10 ** tokenQuoteDecimal))
     )
@@ -376,9 +371,7 @@ export function buildCurveWithTwoSegments(
 
     let totalVestingAmount = getTotalVestingAmount(lockedVesting)
 
-    let totalLeftover = new BN(leftover).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    let totalLeftover = convertToLamports(leftover, tokenBaseDecimal)
 
     let swapAmount = totalSupply
         .sub(migrationBaseAmount)
@@ -579,12 +572,8 @@ export function buildCurveWithLiquidityWeights(
         )
     }
 
-    let totalSupply = new BN(totalTokenSupply).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
-    let totalLeftover = new BN(leftover).mul(
-        new BN(10).pow(new BN(tokenBaseDecimal))
-    )
+    let totalSupply = convertToLamports(totalTokenSupply, tokenBaseDecimal)
+    let totalLeftover = convertToLamports(leftover, tokenBaseDecimal)
     let totalVestingAmount = getTotalVestingAmount(lockedVesting)
 
     let totalSwapAndMigrationAmount = totalSupply

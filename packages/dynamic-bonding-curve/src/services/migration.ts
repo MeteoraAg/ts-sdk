@@ -487,7 +487,9 @@ export class MigrationService extends DynamicBondingCurveProgram {
         const dammV1Program = this.getDammV1Program()
 
         const dammV1MigrationMetadata =
-            await this.state.getDammV1MigrationMetadata(migrationMetadata)
+            await this.state.getDammV1MigrationMetadata(
+                lockDammV1LpTokenParam.virtualPool
+            )
 
         let lockEscrowKey: PublicKey
 
@@ -621,7 +623,9 @@ export class MigrationService extends DynamicBondingCurveProgram {
         )
 
         const dammV1MigrationMetadata =
-            await this.state.getDammV1MigrationMetadata(migrationMetadata)
+            await this.state.getDammV1MigrationMetadata(
+                claimDammV1LpTokenParam.virtualPool
+            )
 
         const lpMint = deriveDammV1LpMintAddress(dammPool)
 

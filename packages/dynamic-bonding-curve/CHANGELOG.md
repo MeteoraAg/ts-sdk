@@ -2,6 +2,33 @@
 
 All notable changes to the Dynamic Bonding Curve SDK will be documented in this file.
 
+## [1.2.3] - 2025-06-07
+
+### Added
+
+- `swapQuoteExactIn` function
+
+## [1.2.2] - 2025-06-02
+
+### Added
+
+- `claimCreatorTradingFee2` function (without `tempWSolAcc` parameter)
+- `claimPartnerTradingFee2` function (without `tempWSolAcc` parameter)
+
+## [1.2.1] - 2025-06-02
+
+### Changed
+
+- Fixed `buildCurveWithMarketCap` function to correctly calculate the `migrationQuoteThreshold`
+- Fixed `validateConfigParameters` function to calculate `migrationBaseAmount` correctly
+
+## [1.2.0] - 2025-05-31
+
+### Changed
+
+- `withdrawMigrationFee` function for partner and creator is now called `partnerWithdrawMigrationFee` and `creatorWithdrawMigrationFee`
+- `createConfigAndPoolWithFirstBuy` function now returns an object containing the new config transaction, new pool transaction, and first buy transaction
+
 ## [1.1.9] - 2025-05-30
 
 ### Added

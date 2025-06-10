@@ -343,7 +343,6 @@ export type CreateConfigAndPoolWithFirstBuyParam = CreateConfigAndPoolParam & {
     swapBuyParam: {
         buyAmount: BN
         minimumAmountOut: BN
-        quoteMintTokenAccount: PublicKey
         referralTokenAccount: PublicKey | null
     }
 }
@@ -371,6 +370,12 @@ export type SwapQuoteParam = {
     amountIn: BN
     slippageBps?: number
     hasReferral: boolean
+    currentPoint: BN
+}
+
+export type SwapQuoteExactInParam = {
+    virtualPool: VirtualPool
+    config: PoolConfig
     currentPoint: BN
 }
 
@@ -410,6 +415,15 @@ export type ClaimTradingFeeParam = {
     tempWSolAcc?: PublicKey
 }
 
+export type ClaimTradingFee2Param = {
+    feeClaimer: PublicKey
+    payer: PublicKey
+    pool: PublicKey
+    maxBaseAmount: BN
+    maxQuoteAmount: BN
+    receiver: PublicKey
+}
+
 export type ClaimPartnerTradingFeeWithQuoteMintNotSolParam = {
     feeClaimer: PublicKey
     payer: PublicKey
@@ -435,6 +449,15 @@ export type ClaimCreatorTradingFeeParam = {
     maxQuoteAmount: BN
     receiver?: PublicKey
     tempWSolAcc?: PublicKey
+}
+
+export type ClaimCreatorTradingFee2Param = {
+    creator: PublicKey
+    payer: PublicKey
+    pool: PublicKey
+    maxBaseAmount: BN
+    maxQuoteAmount: BN
+    receiver: PublicKey
 }
 
 export type ClaimCreatorTradingFeeWithQuoteMintNotSolParam = {
