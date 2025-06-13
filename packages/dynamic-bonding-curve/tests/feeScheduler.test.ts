@@ -2,8 +2,8 @@ import {
     ActivationType,
     buildCurveWithMarketCap,
     CollectFeeMode,
-    FeeSchedulerMode,
-    getBaseFeeParams,
+    BaseFeeMode,
+    getFeeSchedulerParams,
     MigrationFeeOption,
     MigrationOption,
     TokenDecimal,
@@ -17,10 +17,10 @@ describe('calculateFeeScheduler tests', () => {
         const startingFeeBps = 5000
         const endingFeeBps = 1000
         const numberOfPeriod = 144
-        const feeSchedulerMode = FeeSchedulerMode.Linear
+        const feeSchedulerMode = BaseFeeMode.FeeSchedulerLinear
         const totalDuration = 60
 
-        const result = getBaseFeeParams(
+        const result = getFeeSchedulerParams(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,
@@ -31,17 +31,17 @@ describe('calculateFeeScheduler tests', () => {
         console.log('result', convertBNToDecimal(result))
 
         // linear mode: cliffFeeNumerator - (numberOfPeriod * reductionFactor)
-        expect(result.reductionFactor.toNumber()).toEqual(2777777)
+        expect(result.thirdFactor.toNumber()).toEqual(2777777)
     })
 
     test('exponential fee scheduler - should calculate parameters correctly', () => {
         const startingFeeBps = 5000
         const endingFeeBps = 100
         const numberOfPeriod = 100
-        const feeSchedulerMode = FeeSchedulerMode.Exponential
+        const feeSchedulerMode = BaseFeeMode.FeeSchedulerExponential
         const totalDuration = 10 * 60 * 60
 
-        const result = getBaseFeeParams(
+        const result = getFeeSchedulerParams(
             startingFeeBps,
             endingFeeBps,
             feeSchedulerMode,
@@ -52,7 +52,7 @@ describe('calculateFeeScheduler tests', () => {
         console.log('result', convertBNToDecimal(result))
 
         // exponential mode: cliffFeeNumerator * (1 - reductionFactor/10_000)^numberOfPeriod
-        // expect(result.reductionFactor.toNumber()).toEqual(420)
+        expect(result.thirdFactor.toNumber()).toEqual(383)
     })
 
     test('build curve with market cap - should calculate parameters correctly', () => {
@@ -70,12 +70,14 @@ describe('calculateFeeScheduler tests', () => {
                 totalVestingDuration: 0,
                 cliffDurationFromMigrationTime: 0,
             },
-            feeSchedulerParam: {
-                startingFeeBps: 5000,
-                endingFeeBps: 100,
-                numberOfPeriod: 100,
-                totalDuration: 10 * 60 * 60,
-                feeSchedulerMode: FeeSchedulerMode.Exponential,
+            baseFeeParams: {
+                baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
+                feeSchedulerParam: {
+                    startingFeeBps: 5000,
+                    endingFeeBps: 100,
+                    numberOfPeriod: 100,
+                    totalDuration: 10 * 60 * 60,
+                },
             },
             dynamicFeeEnabled: true,
             activationType: ActivationType.Slot,

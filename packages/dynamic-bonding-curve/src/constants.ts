@@ -10,12 +10,20 @@ export const MAX_SQRT_PRICE: BN = new BN('79226673521066979257578248091')
 export const RESOLUTION = 64
 export const ONE_Q64 = new BN(1).shln(RESOLUTION)
 export const FEE_DENOMINATOR = 1_000_000_000
-export const MAX_FEE_NUMERATOR = 500_000_000 // 50%
+export const MAX_FEE_BPS = 9900 // 99%
+export const MIN_FEE_BPS = 1 // 0.0001%
+export const MIN_FEE_NUMERATOR = 100_000 // 0.0001%
+export const MAX_FEE_NUMERATOR = 990_000_000 // 99%
 export const BASIS_POINT_MAX = 10000
 export const MAX_CURVE_POINT = 16
 export const PARTNER_SURPLUS_SHARE = 80 // 80%
 export const SWAP_BUFFER_PERCENTAGE = 25 // 25%
 export const MAX_SWALLOW_PERCENTAGE = 20 // 20%
+export const MAX_MIGRATION_FEE_PERCENTAGE = 50 // 50%
+export const MAX_CREATOR_MIGRATION_FEE_PERCENTAGE = 100 // 100%
+
+export const MAX_RATE_LIMITER_DURATION_IN_SECONDS = 43200 // 12 hours
+export const MAX_RATE_LIMITER_DURATION_IN_SLOTS = 108000 // 12 hours
 
 export const SLOT_DURATION = 400
 export const TIMESTAMP_DURATION = 1000

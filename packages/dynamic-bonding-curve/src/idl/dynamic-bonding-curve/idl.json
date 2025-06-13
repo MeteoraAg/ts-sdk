@@ -3910,6 +3910,21 @@
       "code": 6040,
       "name": "MigrationFeeHasBeenWithdraw",
       "msg": "Migration fee has been withdraw"
+    },
+    {
+      "code": 6041,
+      "name": "InvalidBaseFeeMode",
+      "msg": "Invalid base fee mode"
+    },
+    {
+      "code": 6042,
+      "name": "InvalidFeeRateLimiter",
+      "msg": "Invalid fee rate limiter"
+    },
+    {
+      "code": 6043,
+      "name": "FailToValidateSingleSwapInstruction",
+      "msg": "Fail to validate single swap instruction in rate limiter"
     }
   ],
   "types": [
@@ -3927,19 +3942,19 @@
             "type": "u64"
           },
           {
-            "name": "period_frequency",
+            "name": "second_factor",
             "type": "u64"
           },
           {
-            "name": "reduction_factor",
+            "name": "third_factor",
             "type": "u64"
           },
           {
-            "name": "number_of_period",
+            "name": "first_factor",
             "type": "u16"
           },
           {
-            "name": "fee_scheduler_mode",
+            "name": "base_fee_mode",
             "type": "u8"
           },
           {
@@ -3964,19 +3979,19 @@
             "type": "u64"
           },
           {
-            "name": "number_of_period",
+            "name": "first_factor",
             "type": "u16"
           },
           {
-            "name": "period_frequency",
+            "name": "second_factor",
             "type": "u64"
           },
           {
-            "name": "reduction_factor",
+            "name": "third_factor",
             "type": "u64"
           },
           {
-            "name": "fee_scheduler_mode",
+            "name": "base_fee_mode",
             "type": "u8"
           }
         ]

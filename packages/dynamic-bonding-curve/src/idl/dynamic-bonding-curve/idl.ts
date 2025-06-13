@@ -3097,6 +3097,21 @@ export type DynamicBondingCurve = {
             name: 'migrationFeeHasBeenWithdraw'
             msg: 'Migration fee has been withdraw'
         },
+        {
+            code: 6041
+            name: 'invalidBaseFeeMode'
+            msg: 'Invalid base fee mode'
+        },
+        {
+            code: 6042
+            name: 'invalidFeeRateLimiter'
+            msg: 'Invalid fee rate limiter'
+        },
+        {
+            code: 6043
+            name: 'failToValidateSingleSwapInstruction'
+            msg: 'Fail to validate single swap instruction in rate limiter'
+        },
     ]
     types: [
         {
@@ -3113,19 +3128,19 @@ export type DynamicBondingCurve = {
                         type: 'u64'
                     },
                     {
-                        name: 'periodFrequency'
+                        name: 'secondFactor'
                         type: 'u64'
                     },
                     {
-                        name: 'reductionFactor'
+                        name: 'thirdFactor'
                         type: 'u64'
                     },
                     {
-                        name: 'numberOfPeriod'
+                        name: 'firstFactor'
                         type: 'u16'
                     },
                     {
-                        name: 'feeSchedulerMode'
+                        name: 'baseFeeMode'
                         type: 'u8'
                     },
                     {
@@ -3147,19 +3162,19 @@ export type DynamicBondingCurve = {
                         type: 'u64'
                     },
                     {
-                        name: 'numberOfPeriod'
+                        name: 'firstFactor'
                         type: 'u16'
                     },
                     {
-                        name: 'periodFrequency'
+                        name: 'secondFactor'
                         type: 'u64'
                     },
                     {
-                        name: 'reductionFactor'
+                        name: 'thirdFactor'
                         type: 'u64'
                     },
                     {
-                        name: 'feeSchedulerMode'
+                        name: 'baseFeeMode'
                         type: 'u8'
                     },
                 ]

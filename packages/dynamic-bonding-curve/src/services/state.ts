@@ -203,41 +203,6 @@ export class StateService extends DynamicBondingCurveProgram {
     }
 
     /**
-     * Get DAMM V1 migration metadata
-     * @param poolAddress - The address of the DAMM V1 pool (on DBC)
-     * @returns A DAMM V1 migration metadata
-     */
-    async getDammV1MigrationMetadata(
-        poolAddress: PublicKey
-    ): Promise<MeteoraDammMigrationMetadata> {
-        const migrationMetadataAddress =
-            deriveDammV1MigrationMetadataAddress(poolAddress)
-        const metadata =
-            await this.program.account.meteoraDammMigrationMetadata.fetch(
-                migrationMetadataAddress
-            )
-
-        return metadata
-    }
-
-    /**
-     * Get DAMM V2 migration metadata
-     * @param poolAddress - The address of the DAMM V2 pool (on DBC)
-     * @returns A DAMM V2 migration metadata
-     */
-    async getDammV2MigrationMetadata(
-        poolAddress: PublicKey
-    ): Promise<MeteoraDammV2MigrationMetadata> {
-        const migrationMetadataAddress =
-            deriveDammV2MigrationMetadataAddress(poolAddress)
-        const metadata = await this.program.account.meteoraDammV2Metadata.fetch(
-            migrationMetadataAddress
-        )
-
-        return metadata
-    }
-
-    /**
      * Get fee metrics for a specific pool
      * @param poolAddress - The address of the pool
      * @returns Object containing current and total fee metrics

@@ -6,11 +6,7 @@ import {
     getDeltaAmountQuoteUnsigned,
     getNextSqrtPriceFromInput,
 } from './curve'
-import {
-    getCurrentBaseFeeNumerator,
-    getFeeOnAmount,
-    getVariableFee,
-} from './feeMath'
+import { getBaseFeeNumerator, getFeeOnAmount, getVariableFee } from './feeMath'
 import {
     CollectFeeMode,
     GetFeeMode,
@@ -56,7 +52,8 @@ export function getSwapResult(
             feeMode.hasReferral,
             currentPoint,
             poolState.activationPoint,
-            poolState.volatilityTracker
+            poolState.volatilityTracker,
+            tradeDirection
         )
 
         actualProtocolFee = feeResult.protocolFee
@@ -92,7 +89,8 @@ export function getSwapResult(
             feeMode.hasReferral,
             currentPoint,
             poolState.activationPoint,
-            poolState.volatilityTracker
+            poolState.volatilityTracker,
+            tradeDirection
         )
 
         actualProtocolFee = feeResult.protocolFee
@@ -456,8 +454,9 @@ export function calculateQuoteExactInAmount(
     )
 
     if (config.collectFeeMode === CollectFeeMode.OnlyQuote) {
-        const baseFeeNumerator = getCurrentBaseFeeNumerator(
+        const baseFeeNumerator = getBaseFeeNumerator(
             config.poolFees.baseFee,
+            TradeDirection.QuoteToBase,
             currentPoint,
             virtualPool.activationPoint
         )

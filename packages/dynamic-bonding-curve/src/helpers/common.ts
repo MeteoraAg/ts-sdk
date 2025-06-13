@@ -1,12 +1,13 @@
 import {
     BaseFee,
     DynamicFeeParameters,
-    FeeSchedulerMode,
+    BaseFeeMode,
     MigrationOption,
     Rounding,
     TokenDecimal,
     type LiquidityDistributionParameters,
     type LockedVestingParameters,
+    ActivationType,
 } from '../types'
 import {
     BASIS_POINT_MAX,
@@ -16,9 +17,14 @@ import {
     DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
     DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
     FEE_DENOMINATOR,
+    MAX_FEE_BPS,
     MAX_FEE_NUMERATOR,
+    MAX_MIGRATION_FEE_PERCENTAGE,
     MAX_PRICE_CHANGE_BPS_DEFAULT,
+    MAX_RATE_LIMITER_DURATION_IN_SECONDS,
+    MAX_RATE_LIMITER_DURATION_IN_SLOTS,
     MAX_SQRT_PRICE,
+    MIN_FEE_NUMERATOR,
     MIN_SQRT_PRICE,
     ONE_Q64,
 } from '../constants'
@@ -30,16 +36,10 @@ import {
     getInitialLiquidityFromDeltaQuote,
     getNextSqrtPriceFromInput,
 } from '../math/curve'
-import { pow } from '../math/safeMath'
 import { Connection, PublicKey } from '@solana/web3.js'
 import type { DynamicBondingCurve } from '../idl/dynamic-bonding-curve/idl'
 import { Program } from '@coral-xyz/anchor'
-import {
-    bpsToFeeNumerator,
-    convertToLamports,
-    feeNumeratorToBps,
-    fromDecimalToBN,
-} from './utils'
+import { bpsToFeeNumerator, convertToLamports, fromDecimalToBN } from './utils'
 
 /**
  * Get the first key
@@ -334,6 +334,40 @@ export const getMigrationQuoteThresholdFromMigrationQuoteAmount = (
         .mul(new Decimal(100))
         .div(new Decimal(100).sub(new Decimal(migrationFeePercent)))
     return migrationQuoteThreshold
+}
+
+/**
+ * Get the migration market cap
+ * @param percentageSupplyOnMigration - The percentage of supply on migration
+ * @param totalTokenSupply - The total token supply
+ * @param migrationQuoteThreshold - The migration quote threshold
+ * @param migrationFeePercentage - The migration fee percentage
+ * @returns The migration market cap
+ */
+export const getMigrationMarketCap = (
+    percentageSupplyOnMigration: number,
+    totalTokenSupply: number,
+    migrationQuoteThreshold: number,
+    migrationFeePercentage: number
+): Decimal => {
+    if (migrationFeePercentage > MAX_MIGRATION_FEE_PERCENTAGE) {
+        throw new Error('Migration fee percentage cannot be greater than 50')
+    }
+
+    const migrationBaseAmount = new Decimal(totalTokenSupply)
+        .mul(new Decimal(percentageSupplyOnMigration))
+        .div(new Decimal(100))
+
+    const migrationQuoteAmount =
+        getMigrationQuoteAmountFromMigrationQuoteThreshold(
+            new Decimal(migrationQuoteThreshold),
+            migrationFeePercentage
+        )
+
+    const migrationPrice = migrationQuoteAmount.div(migrationBaseAmount)
+
+    const migrationMarketCap = migrationPrice.mul(new Decimal(totalTokenSupply))
+    return migrationMarketCap
 }
 
 /**
@@ -659,6 +693,7 @@ export const getSwapAmountWithBuffer = (
  * @param initialMarketCap - The initial market cap
  * @param migrationMarketCap - The migration market cap
  * @param lockedVesting - The locked vesting
+ * @param totalLeftover - The leftover
  * @param totalTokenSupply - The total token supply
  * @returns The percentage of supply for initial liquidity
  */
@@ -666,25 +701,30 @@ export const getPercentageSupplyOnMigration = (
     initialMarketCap: Decimal,
     migrationMarketCap: Decimal,
     lockedVesting: LockedVestingParameters,
+    totalLeftover: BN,
     totalTokenSupply: BN
 ): number => {
-    // formula: x = sqrt(initialMC / migrationMC) * (100 - z) / (1 + sqrt(initialMC / migrationMC))
+    // formula: x = sqrt(initialMC / migrationMC) * (100 - lockedVesting - leftover) / (1 + sqrt(initialMC / migrationMC))
 
-    // sqrt(initial_MC / migration_MC)
+    // sqrtRatio = sqrt(initial_MC / migration_MC)
     const marketCapRatio = initialMarketCap.div(migrationMarketCap)
     const sqrtRatio = Decimal.sqrt(marketCapRatio)
 
     // locked vesting percentage
     const totalVestingAmount = getTotalVestingAmount(lockedVesting)
-    const vestingPercentageDecimal = new Decimal(totalVestingAmount.toString())
+    const vestingPercentage = new Decimal(totalVestingAmount.toString())
         .mul(new Decimal(100))
         .div(new Decimal(totalTokenSupply.toString()))
-    const vestingPercentage = vestingPercentageDecimal.toNumber()
 
-    // (100 * sqrtRatio - lockedVesting * sqrtRatio) / (1 + sqrtRatio)
+    // leftover percentage
+    const leftoverPercentage = new Decimal(totalLeftover.toString())
+        .mul(new Decimal(100))
+        .div(new Decimal(totalTokenSupply.toString()))
+
+    // (100 * sqrtRatio - (vestingPercentage + leftoverPercentage) * sqrtRatio) / (1 + sqrtRatio)
     const numerator = new Decimal(100)
         .mul(sqrtRatio)
-        .sub(new Decimal(vestingPercentage).mul(sqrtRatio))
+        .sub(vestingPercentage.add(leftoverPercentage).mul(sqrtRatio))
     const denominator = new Decimal(1).add(sqrtRatio)
     return numerator.div(denominator).toNumber()
 }
@@ -706,19 +746,19 @@ export const getMigrationQuoteAmount = (
 }
 
 /**
- * Calculates base fee parameters for a fee scheduler system.
- * @param {number} maxBaseFeeBps - Maximum fee in basis points
- * @param {number} minBaseFeeBps - Minimum fee in basis points
- * @param {FeeSchedulerMode} feeSchedulerMode - Mode for fee reduction (Linear or Exponential)
+ * Get the fee scheduler parameters
+ * @param {number} startingBaseFeeBps - Starting fee in basis points
+ * @param {number} endingBaseFeeBps - Ending fee in basis points
+ * @param {BaseFeeMode} baseFeeMode - Mode for fee reduction (Linear or Exponential)
  * @param {number} numberOfPeriod - Number of periods over which to schedule fee reduction
- * @param {BN} periodFrequency - Time interval between fee reductions
+ * @param {BN} totalDuration - Total duration of the fee scheduler
  *
  * @returns {BaseFee}
  */
-export function getBaseFeeParams(
+export function getFeeSchedulerParams(
     startingBaseFeeBps: number,
     endingBaseFeeBps: number,
-    feeSchedulerMode: FeeSchedulerMode,
+    baseFeeMode: BaseFeeMode,
     numberOfPeriod: number,
     totalDuration: number
 ): BaseFee {
@@ -731,10 +771,10 @@ export function getBaseFeeParams(
 
         return {
             cliffFeeNumerator: bpsToFeeNumerator(startingBaseFeeBps),
-            numberOfPeriod: 0,
-            periodFrequency: new BN(0),
-            reductionFactor: new BN(0),
-            feeSchedulerMode: FeeSchedulerMode.Linear,
+            firstFactor: 0,
+            secondFactor: new BN(0),
+            thirdFactor: new BN(0),
+            baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
         }
     }
 
@@ -742,11 +782,9 @@ export function getBaseFeeParams(
         throw new Error('Total periods must be greater than zero')
     }
 
-    if (startingBaseFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
+    if (startingBaseFeeBps > MAX_FEE_BPS) {
         throw new Error(
-            `startingBaseFeeBps (${startingBaseFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
-                new BN(MAX_FEE_NUMERATOR)
-            )} bps`
+            `startingBaseFeeBps (${startingBaseFeeBps} bps) exceeds maximum allowed value of ${MAX_FEE_BPS} bps`
         )
     }
 
@@ -769,7 +807,7 @@ export function getBaseFeeParams(
     const periodFrequency = new BN(totalDuration / numberOfPeriod)
 
     let reductionFactor: BN
-    if (feeSchedulerMode == FeeSchedulerMode.Linear) {
+    if (baseFeeMode == BaseFeeMode.FeeSchedulerLinear) {
         const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator)
         reductionFactor = totalReduction.divn(numberOfPeriod)
     } else {
@@ -781,29 +819,29 @@ export function getBaseFeeParams(
 
     return {
         cliffFeeNumerator: maxBaseFeeNumerator,
-        numberOfPeriod,
-        periodFrequency,
-        reductionFactor,
-        feeSchedulerMode,
+        firstFactor: numberOfPeriod,
+        secondFactor: periodFrequency,
+        thirdFactor: reductionFactor,
+        baseFeeMode,
     }
 }
 
 /**
- * Get the minimum base fee in basis points
+ * Calculate the ending base fee of fee scheduler in basis points
  * @param cliffFeeNumerator - The cliff fee numerator
  * @param numberOfPeriod - The number of period
  * @param reductionFactor - The reduction factor
  * @param feeSchedulerMode - The fee scheduler mode
  * @returns The minimum base fee in basis points
  */
-export function getMinBaseFeeBps(
+export function calculateFeeSchedulerEndingBaseFeeBps(
     cliffFeeNumerator: number,
     numberOfPeriod: number,
     reductionFactor: number,
-    feeSchedulerMode: FeeSchedulerMode
+    baseFeeMode: BaseFeeMode
 ): number {
     let baseFeeNumerator: number
-    if (feeSchedulerMode == FeeSchedulerMode.Linear) {
+    if (baseFeeMode == BaseFeeMode.FeeSchedulerLinear) {
         // linear mode
         baseFeeNumerator = cliffFeeNumerator - numberOfPeriod * reductionFactor
     } else {
@@ -817,6 +855,91 @@ export function getMinBaseFeeBps(
     return Math.max(0, (baseFeeNumerator / FEE_DENOMINATOR) * BASIS_POINT_MAX)
 }
 
+/**
+ * Get the rate limiter parameters
+ * @param baseFeeBps - The base fee in basis points
+ * @param feeIncrementBps - The fee increment in basis points
+ * @param referenceAmount - The reference amount
+ * @param maxLimiterDuration - The max rate limiter duration
+ * @param tokenQuoteDecimal - The token quote decimal
+ * @param activationType - The activation type
+ * @returns The rate limiter parameters
+ */
+export function getRateLimiterParams(
+    baseFeeBps: number,
+    feeIncrementBps: number,
+    referenceAmount: number,
+    maxLimiterDuration: number,
+    tokenQuoteDecimal: TokenDecimal,
+    activationType: ActivationType
+): BaseFee {
+    const cliffFeeNumerator = bpsToFeeNumerator(baseFeeBps)
+    const feeIncrementNumerator = bpsToFeeNumerator(feeIncrementBps)
+
+    if (
+        baseFeeBps <= 0 ||
+        feeIncrementBps <= 0 ||
+        referenceAmount <= 0 ||
+        maxLimiterDuration <= 0
+    ) {
+        throw new Error('All rate limiter parameters must be greater than zero')
+    }
+
+    if (baseFeeBps > MAX_FEE_BPS) {
+        throw new Error(
+            `Base fee (${baseFeeBps} bps) exceeds maximum allowed value of ${MAX_FEE_BPS} bps`
+        )
+    }
+
+    if (feeIncrementBps > MAX_FEE_BPS) {
+        throw new Error(
+            `Fee increment (${feeIncrementBps} bps) exceeds maximum allowed value of ${MAX_FEE_BPS} bps`
+        )
+    }
+
+    if (feeIncrementNumerator.gte(new BN(FEE_DENOMINATOR))) {
+        throw new Error(
+            'Fee increment numerator must be less than FEE_DENOMINATOR'
+        )
+    }
+
+    const deltaNumerator = new BN(MAX_FEE_NUMERATOR).sub(cliffFeeNumerator)
+    const maxIndex = deltaNumerator.div(feeIncrementNumerator)
+    if (maxIndex.lt(new BN(1))) {
+        throw new Error('Fee increment is too large for the given base fee')
+    }
+
+    if (
+        cliffFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
+        cliffFeeNumerator.gt(new BN(MAX_FEE_NUMERATOR))
+    ) {
+        throw new Error('Base fee must be between 0.01% and 99%')
+    }
+
+    const maxDuration =
+        activationType === ActivationType.Slot
+            ? MAX_RATE_LIMITER_DURATION_IN_SLOTS
+            : MAX_RATE_LIMITER_DURATION_IN_SECONDS
+
+    if (maxLimiterDuration > maxDuration) {
+        throw new Error(
+            `Max duration exceeds maximum allowed value of ${maxDuration}`
+        )
+    }
+
+    const referenceAmountInLamports = convertToLamports(
+        referenceAmount,
+        tokenQuoteDecimal
+    )
+
+    return {
+        cliffFeeNumerator,
+        firstFactor: feeIncrementBps,
+        secondFactor: new BN(maxLimiterDuration),
+        thirdFactor: new BN(referenceAmountInLamports),
+        baseFeeMode: BaseFeeMode.RateLimiter,
+    }
+}
 /**
  * Get the dynamic fee parameters (20% of base fee)
  * @param baseFeeBps - The base fee in basis points
@@ -1030,5 +1153,95 @@ export const getTwoCurve = (
                 liquidity: new BN(l1.floor().toFixed()),
             },
         ],
+    }
+}
+
+/**
+ * Check if rate limiter should be applied based on pool configuration and state
+ * @param baseFeeMode - The base fee mode
+ * @param swapBaseForQuote - Whether the swap is from base to quote
+ * @param currentPoint - The current point
+ * @param activationPoint - The activation point
+ * @param maxLimiterDuration - The maximum limiter duration
+ * @returns Whether rate limiter should be applied
+ */
+export function checkRateLimiterApplied(
+    baseFeeMode: BaseFeeMode,
+    swapBaseForQuote: boolean,
+    currentPoint: BN,
+    activationPoint: BN,
+    maxLimiterDuration: BN
+): boolean {
+    return (
+        baseFeeMode === BaseFeeMode.RateLimiter &&
+        !swapBaseForQuote &&
+        currentPoint.gte(activationPoint) &&
+        currentPoint.lte(activationPoint.add(maxLimiterDuration))
+    )
+}
+
+/**
+ * Get base fee parameters based on the base fee mode
+ * @param baseFeeParams - The base fee parameters
+ * @param tokenQuoteDecimal - The token quote decimal
+ * @param activationType - The activation type
+ * @returns The base fee parameters
+ */
+export function getBaseFeeParams(
+    baseFeeParams: {
+        baseFeeMode: BaseFeeMode
+        rateLimiterParam?: {
+            baseFeeBps: number
+            feeIncrementBps: number
+            referenceAmount: number
+            maxLimiterDuration: number
+        }
+        feeSchedulerParam?: {
+            startingFeeBps: number
+            endingFeeBps: number
+            numberOfPeriod: number
+            totalDuration: number
+        }
+    },
+    tokenQuoteDecimal: TokenDecimal,
+    activationType: ActivationType
+): BaseFee {
+    if (baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter) {
+        if (!baseFeeParams.rateLimiterParam) {
+            throw new Error(
+                'Rate limiter parameters are required for RateLimiter mode'
+            )
+        }
+        const {
+            baseFeeBps,
+            feeIncrementBps,
+            referenceAmount,
+            maxLimiterDuration,
+        } = baseFeeParams.rateLimiterParam
+
+        return getRateLimiterParams(
+            baseFeeBps,
+            feeIncrementBps,
+            referenceAmount,
+            maxLimiterDuration,
+            tokenQuoteDecimal,
+            activationType
+        )
+    } else {
+        if (!baseFeeParams.feeSchedulerParam) {
+            throw new Error(
+                'Fee scheduler parameters are required for FeeScheduler mode'
+            )
+        }
+        const { startingFeeBps, endingFeeBps, numberOfPeriod, totalDuration } =
+            baseFeeParams.feeSchedulerParam
+
+        return getFeeSchedulerParams(
+            startingFeeBps,
+            endingFeeBps,
+            baseFeeParams.baseFeeMode,
+            numberOfPeriod,
+            totalDuration
+        )
     }
 }

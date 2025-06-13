@@ -8,7 +8,6 @@ import {
 import { TradeDirection, GetFeeMode } from '../../src/types'
 import { Q } from '../utils/common'
 
-// Test getFeeMode function
 test('getFeeMode with QuoteToken mode', () => {
     // Test base to quote direction
     const feeMode1 = getFeeMode(

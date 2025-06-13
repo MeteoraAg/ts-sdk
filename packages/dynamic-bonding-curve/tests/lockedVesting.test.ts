@@ -133,11 +133,11 @@ describe('calculateLockedVesting tests', () => {
     })
 
     test('calculate locked vesting parameters 5', () => {
-        const totalLockedVestingAmount = 12345678
-        const numberOfVestingPeriod = 12
-        const cliffUnlockAmount = 9999
-        const totalVestingDuration = (365 * 24 * 60 * 60) / 0.4
-        const cliffDurationFromMigrationTime = 0
+        const totalLockedVestingAmount = 1000000
+        const numberOfVestingPeriod = 1
+        const cliffUnlockAmount = 1000000
+        const totalVestingDuration = 0
+        const cliffDurationFromMigrationTime = 365 * 24 * 60 * 60
 
         const result = getLockedVestingParams(
             totalLockedVestingAmount,

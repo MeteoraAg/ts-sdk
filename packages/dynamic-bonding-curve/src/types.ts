@@ -171,9 +171,10 @@ export enum GetFeeMode {
     OutputToken = 1,
 }
 
-export enum FeeSchedulerMode {
-    Linear = 0,
-    Exponential = 1,
+export enum BaseFeeMode {
+    FeeSchedulerLinear = 0,
+    FeeSchedulerExponential = 1,
+    RateLimiter = 2,
 }
 
 export enum MigrationFeeOption {
@@ -228,18 +229,24 @@ export type CreateDammV2MigrationMetadataParam =
 
 export type BaseFee = {
     cliffFeeNumerator: BN
-    numberOfPeriod: number
-    periodFrequency: BN
-    reductionFactor: BN
-    feeSchedulerMode: FeeSchedulerMode
+    firstFactor: number // feeScheduler: numberOfPeriod, rateLimiter: feeIncrementBps
+    secondFactor: BN // feeScheduler: periodFrequency, rateLimiter: maxLimiterDuration
+    thirdFactor: BN // feeScheduler: reductionFactor, rateLimiter: referenceAmount
+    baseFeeMode: BaseFeeMode
 }
 
 export type FeeSchedulerParams = {
     startingFeeBps: number
     endingFeeBps: number
     numberOfPeriod: number
-    feeSchedulerMode: FeeSchedulerMode
     totalDuration: number
+}
+
+export type RateLimiterParams = {
+    baseFeeBps: number
+    feeIncrementBps: number
+    referenceAmount: number
+    maxLimiterDuration: number
 }
 
 export type LockedVestingParams = {
@@ -250,13 +257,25 @@ export type LockedVestingParams = {
     cliffDurationFromMigrationTime: number
 }
 
+type BaseFeeParams =
+    | {
+          baseFeeMode:
+              | BaseFeeMode.FeeSchedulerLinear
+              | BaseFeeMode.FeeSchedulerExponential
+          feeSchedulerParam: FeeSchedulerParams
+      }
+    | {
+          baseFeeMode: BaseFeeMode.RateLimiter
+          rateLimiterParam: RateLimiterParams
+      }
+
 export type BuildCurveBaseParam = {
     totalTokenSupply: number
     migrationOption: MigrationOption
     tokenBaseDecimal: TokenDecimal
     tokenQuoteDecimal: TokenDecimal
     lockedVestingParam: LockedVestingParams
-    feeSchedulerParam: FeeSchedulerParams
+    baseFeeParams: BaseFeeParams
     dynamicFeeEnabled: boolean
     activationType: ActivationType
     collectFeeMode: CollectFeeMode

@@ -1,3 +1,5 @@
 export * from './curve'
 export * from './feeMath'
 export * from './swapQuote'
+export * from './feeScheduler'
+export * from './rateLimiter'

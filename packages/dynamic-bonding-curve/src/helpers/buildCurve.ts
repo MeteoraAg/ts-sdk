@@ -7,6 +7,7 @@ import {
     BuildCurveWithLiquidityWeightsParam,
     BuildCurveWithTwoSegmentsParam,
     BuildCurveWithFlatSegmentParam,
+    BaseFeeMode,
 } from '../types'
 import { MAX_SQRT_PRICE } from '../constants'
 import {
@@ -21,12 +22,12 @@ import {
     getSwapAmountWithBuffer,
     getDynamicFeeParams,
     getTwoCurve,
-    getBaseFeeParams,
     getLockedVestingParams,
     getMigrationQuoteAmountFromMigrationQuoteThreshold,
     getMigrationQuoteAmount,
     getMigrationQuoteThresholdFromMigrationQuoteAmount,
     getFlatCurve,
+    getBaseFeeParams,
 } from './common'
 import { getInitialLiquidityFromDeltaBase } from '../math/curve'
 import { convertDecimalToBN, convertToLamports, fromDecimalToBN } from './utils'
@@ -57,22 +58,13 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
         leftover,
         tokenUpdateAuthority,
         migrationFee,
+        baseFeeParams,
     } = buildCurveParam
 
-    const {
-        startingFeeBps,
-        endingFeeBps,
-        numberOfPeriod,
-        feeSchedulerMode,
-        totalDuration,
-    } = buildCurveParam.feeSchedulerParam
-
-    const baseFeeParams = getBaseFeeParams(
-        startingFeeBps,
-        endingFeeBps,
-        feeSchedulerMode,
-        numberOfPeriod,
-        totalDuration
+    const baseFee = getBaseFeeParams(
+        baseFeeParams,
+        tokenQuoteDecimal,
+        activationType
     )
 
     const {
@@ -174,10 +166,14 @@ export function buildCurve(buildCurveParam: BuildCurveParam): ConfigParameters {
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                ...baseFeeParams,
+                ...baseFee,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(endingFeeBps)
+                ? getDynamicFeeParams(
+                      baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter
+                          ? baseFeeParams.rateLimiterParam.baseFeeBps
+                          : baseFeeParams.feeSchedulerParam.endingFeeBps
+                  )
                 : null,
         },
         activationType: activationType,
@@ -221,6 +217,7 @@ export function buildCurveWithMarketCap(
         totalTokenSupply,
         tokenBaseDecimal,
         migrationFee,
+        leftover,
     } = buildCurveWithMarketCapParam
 
     const {
@@ -240,12 +237,15 @@ export function buildCurveWithMarketCap(
         tokenBaseDecimal
     )
 
+    const totalLeftover = convertToLamports(leftover, tokenBaseDecimal)
+
     const totalSupply = convertToLamports(totalTokenSupply, tokenBaseDecimal)
 
     const percentageSupplyOnMigration = getPercentageSupplyOnMigration(
         new Decimal(initialMarketCap),
         new Decimal(migrationMarketCap),
         lockedVesting,
+        totalLeftover,
         totalSupply
     )
 
@@ -295,22 +295,13 @@ export function buildCurveWithTwoSegments(
         migrationFeeOption,
         migrationFee,
         tokenUpdateAuthority,
+        baseFeeParams,
     } = buildCurveWithTwoSegmentsParam
 
-    const {
-        startingFeeBps,
-        endingFeeBps,
-        numberOfPeriod,
-        feeSchedulerMode,
-        totalDuration,
-    } = buildCurveWithTwoSegmentsParam.feeSchedulerParam
-
-    const baseFeeParams = getBaseFeeParams(
-        startingFeeBps,
-        endingFeeBps,
-        feeSchedulerMode,
-        numberOfPeriod,
-        totalDuration
+    const baseFee = getBaseFeeParams(
+        baseFeeParams,
+        tokenQuoteDecimal,
+        activationType
     )
 
     const {
@@ -445,10 +436,14 @@ export function buildCurveWithTwoSegments(
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                ...baseFeeParams,
+                ...baseFee,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(endingFeeBps)
+                ? getDynamicFeeParams(
+                      baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter
+                          ? baseFeeParams.rateLimiterParam.baseFeeBps
+                          : baseFeeParams.feeSchedulerParam.endingFeeBps
+                  )
                 : null,
         },
         activationType,
@@ -507,22 +502,13 @@ export function buildCurveWithLiquidityWeights(
         liquidityWeights,
         migrationFee,
         tokenUpdateAuthority,
+        baseFeeParams,
     } = buildCurveWithLiquidityWeightsParam
 
-    const {
-        startingFeeBps,
-        endingFeeBps,
-        numberOfPeriod,
-        feeSchedulerMode,
-        totalDuration,
-    } = buildCurveWithLiquidityWeightsParam.feeSchedulerParam
-
-    const baseFeeParams = getBaseFeeParams(
-        startingFeeBps,
-        endingFeeBps,
-        feeSchedulerMode,
-        numberOfPeriod,
-        totalDuration
+    const baseFee = getBaseFeeParams(
+        baseFeeParams,
+        tokenQuoteDecimal,
+        activationType
     )
 
     const {
@@ -585,7 +571,7 @@ export function buildCurveWithLiquidityWeights(
     // Quote_Amount * (1-migrationFee/100) / Base_Amount = Pmax ^ 2
 
     // -> Base_Amount = Quote_Amount * (1-migrationFee) / Pmax ^ 2
-    // -> Swap_Amount + Base_Amount = sum(li * (1/p(i-1) - 1/pi)) + sum(li * (pi-p(i-1))) * (1-migrationFee) / Pmax ^ 2
+    // -> Swap_Amount + Base_Amount = sum(li * (1/p(i-1) - 1/pi)) + sum(li * (pi-p(i-1))) * (1-migrationFee/100) / Pmax ^ 2
     // l0 * sum_factor = Swap_Amount + Base_Amount
     // => l0 * sum_factor = sum(li * (1/p(i-1) - 1/pi)) + sum(li * (pi-p(i-1))) * (1-migrationFee/100) / Pmax ^ 2
     // => l0 = (Swap_Amount + Base_Amount ) / sum_factor
@@ -661,10 +647,14 @@ export function buildCurveWithLiquidityWeights(
     const instructionParams: ConfigParameters = {
         poolFees: {
             baseFee: {
-                ...baseFeeParams,
+                ...baseFee,
             },
             dynamicFee: dynamicFeeEnabled
-                ? getDynamicFeeParams(endingFeeBps)
+                ? getDynamicFeeParams(
+                      baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter
+                          ? baseFeeParams.rateLimiterParam.baseFeeBps
+                          : baseFeeParams.feeSchedulerParam.endingFeeBps
+                  )
                 : null,
         },
         activationType: activationType,
